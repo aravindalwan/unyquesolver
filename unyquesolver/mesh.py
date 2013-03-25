@@ -24,7 +24,7 @@ import itertools as it
 from collections import defaultdict
 import operator
 from meshpy.triangle import MeshInfo, build
-import unyque._internals as internals
+import unyquesolver._internals as internals
 
 class PhysicalDomain(object):
     '''Object that encapsulates the physical domain on which a PDE is solved

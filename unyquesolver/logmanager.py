@@ -42,7 +42,7 @@ def init(level):
     getLogger().setLevel(level)
     getLogger().addHandler(NullHandler())
 
-def getLogger(name = 'unyque'):
+def getLogger(name = 'unyquesolver'):
     '''Return the logger associated with the given name. The main logger is
     returned by default.
 
@@ -71,7 +71,7 @@ def init_results_logger(filename, level):
     level -- Logging level that is used to filter results
     '''
 
-    logger = getLogger('unyque.results')
+    logger = getLogger('unyquesolver.results')
     logger.read_results(filename)
     logger.addHandler(ResultsHandler(filename))
     logger.setLevel(level)

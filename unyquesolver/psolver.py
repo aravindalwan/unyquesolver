@@ -20,7 +20,7 @@ For a copy of the GNU General Public License, please see
 '''
 
 import mpihelper
-import unyque._internals as internals
+import unyquesolver._internals as internals
 from mesh import PhysicalDomain
 
 # MPI Tags
