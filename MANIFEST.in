@@ -3,4 +3,4 @@ include README.rst
 include NEWS.txt
 include LICENSE
 
-recursive-include unyque/internals *.hpp *.cpp
+recursive-include unyquesolver/internals *.hpp *.cpp
