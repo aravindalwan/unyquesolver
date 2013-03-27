@@ -58,6 +58,25 @@ namespace fem {
 
     int id;
 
+  public:
+    FEM_Domain();
+    virtual ~FEM_Domain() {};
+
+    // Initialization
+    void SetID(int a) {id = a;};
+    void SetMesh(bp::list nodes, bp::list edges, bp::list elements);
+    void SetNodes(bp::list nodes);
+    void SetEdges(bp::list edges);
+    void SetElements(bp::list elements);
+    virtual void InitDOFs() = 0;
+
+    // Move mesh to include parametric variation of geometry
+    void MoveMesh(unyque::DMatrix &displacement);
+
+  };
+  //------------------------------------------------------------------------------
+  class FEM_PhysicalDomain: public FEM_Domain {
+  public:
     // Mechanical displacements
     pyublas::numpy_vector<double> U, V;
 
@@ -73,19 +92,11 @@ namespace fem {
     unyque::DMatrix Ent;
 
   public:
-    FEM_Domain();
-    ~FEM_Domain() {};
+    FEM_PhysicalDomain();
+    ~FEM_PhysicalDomain() {};
 
     // Initialization
-    void SetID(int a) {id = a;};
-    void SetMesh(bp::list nodes, bp::list edges, bp::list elements);
-    void SetNodes(bp::list nodes);
-    void SetEdges(bp::list edges);
-    void SetElements(bp::list elements);
     void InitDOFs();
-
-    // Move mesh to include parametric variation of geometry
-    void MoveMesh(unyque::DMatrix &displacement);
 
   };
 

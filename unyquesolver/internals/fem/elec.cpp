@@ -4,7 +4,7 @@
 Elec::Elec() {
 }
 //------------------------------------------------------------------------------
-Elec::Elec(fem::FEM_Domain *is, FEM_Common *ic) {
+Elec::Elec(fem::FEM_PhysicalDomain *is, FEM_Common *ic) {
   s = is;
   c = ic;
   nelem = is->nelem;

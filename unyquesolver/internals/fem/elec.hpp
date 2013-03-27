@@ -7,7 +7,7 @@
 class Elec {
 
 public:
-  fem::FEM_Domain *s;
+  fem::FEM_PhysicalDomain *s;
   FEM_Common *c;
   unyque::SparseMatrix K;
   unyque::DVector RHS, dU;
@@ -37,7 +37,7 @@ public:
 
   // Constructors
   Elec();
-  Elec(fem::FEM_Domain *is, FEM_Common *ic);
+  Elec(fem::FEM_PhysicalDomain *is, FEM_Common *ic);
 
   // Global initialization
   void GenerateENC();

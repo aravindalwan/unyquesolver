@@ -80,7 +80,7 @@ fem::Solver::~Solver() {
 void fem::Solver::Init(bp::list nodes, bp::list edges, bp::list elements) {
 
   // Initialize FEM surface object using nodes, edges and elements data
-  s = new FEM_Domain();
+  s = new FEM_PhysicalDomain();
   s->SetID(1);
   s->SetMesh(nodes, edges, elements);
 

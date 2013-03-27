@@ -100,7 +100,22 @@ void fem::FEM_Domain::SetElements(bp::list elements) {
 
 }
 //------------------------------------------------------------------------------
-void fem::FEM_Domain::InitDOFs() {
+void fem::FEM_Domain::MoveMesh(unyque::DMatrix &displacement) {
+
+  fem::FEM_Point *pp, *ppref;
+  for (int i = 0; i < nnode; i++) {
+    pp = Nodes[i+1];
+    ppref = RefNodes[i+1];
+    pp->x = ppref->x + displacement(i,0);
+    pp->y = ppref->y + displacement(i,1);
+  }
+
+}
+//------------------------------------------------------------------------------
+fem::FEM_PhysicalDomain::FEM_PhysicalDomain() : fem::FEM_Domain() {
+}
+//------------------------------------------------------------------------------
+void fem::FEM_PhysicalDomain::InitDOFs() {
 
   U = unyque::DVector_zero(nnode); V = unyque::DVector_zero(nnode);
 
@@ -113,18 +128,6 @@ void fem::FEM_Domain::InitDOFs() {
   BdPhidn = unyque::DVector_zero(nbedge);
   SCharge = unyque::DVector_zero(nbedge);
   Ent = unyque::DMatrix_zero(nbedge, 2);
-
-}
-//------------------------------------------------------------------------------
-void fem::FEM_Domain::MoveMesh(unyque::DMatrix &displacement) {
-
-  fem::FEM_Point *pp, *ppref;
-  for (int i = 0; i < nnode; i++) {
-    pp = Nodes[i+1];
-    ppref = RefNodes[i+1];
-    pp->x = ppref->x + displacement(i,0);
-    pp->y = ppref->y + displacement(i,1);
-  }
 
 }
 //------------------------------------------------------------------------------

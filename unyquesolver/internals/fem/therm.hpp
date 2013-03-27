@@ -7,7 +7,7 @@
 class Therm {
 
 public:
-  fem::FEM_Domain *s;
+  fem::FEM_PhysicalDomain *s;
   FEM_Common *c;
   unyque::SparseMatrix K;
   unyque::DVector RHS, dU;
@@ -39,7 +39,7 @@ public:
 
   // Constructors
   Therm();
-  Therm(fem::FEM_Domain *is, FEM_Common *ic);
+  Therm(fem::FEM_PhysicalDomain *is, FEM_Common *ic);
 
   // Global initialization
   void GenerateENC();

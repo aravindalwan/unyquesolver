@@ -9,9 +9,9 @@ BOOST_PYTHON_MODULE(_internals)
 {
 
   class_<fem::Solver>("Solver", init<int, list>())
-    // Reference the Domain object pointer as an attribute
+    // Reference the PhysicalDomain object pointer as an attribute
     // stackoverflow.com/questions/2541446/exposing-a-pointer-in-boost-python
-    .add_property("domain",
+    .add_property("physical_domain",
 		  make_getter(&fem::Solver::s,
 			      return_value_policy<reference_existing_object>()))
     .def("Init", &fem::Solver::Init)
@@ -50,14 +50,14 @@ BOOST_PYTHON_MODULE(_internals)
     .def_readwrite("y", &fem::FEM_Point::y)
     ;
 
-  class_<fem::FEM_Domain>("Surface")
-    .def(pyublas::by_value_ro_member("U", &fem::FEM_Domain::U))
-    .def(pyublas::by_value_ro_member("V", &fem::FEM_Domain::V))
-    .def(pyublas::by_value_ro_member("T", &fem::FEM_Domain::T))
-    .def(pyublas::by_value_ro_member("Told", &fem::FEM_Domain::Told))
-    .def(pyublas::by_value_ro_member("Phi", &fem::FEM_Domain::Phi))
-    .def(pyublas::by_value_ro_member("BPhi", &fem::FEM_Domain::BPhi))
-    .def(pyublas::by_value_ro_member("BdPhidn", &fem::FEM_Domain::BdPhidn))
-    .def(pyublas::by_value_ro_member("SCharge", &fem::FEM_Domain::SCharge))
+  class_<fem::FEM_PhysicalDomain>("PhysicalDomain")
+    .def(pyublas::by_value_ro_member("U", &fem::FEM_PhysicalDomain::U))
+    .def(pyublas::by_value_ro_member("V", &fem::FEM_PhysicalDomain::V))
+    .def(pyublas::by_value_ro_member("T", &fem::FEM_PhysicalDomain::T))
+    .def(pyublas::by_value_ro_member("Told", &fem::FEM_PhysicalDomain::Told))
+    .def(pyublas::by_value_ro_member("Phi", &fem::FEM_PhysicalDomain::Phi))
+    .def(pyublas::by_value_ro_member("BPhi", &fem::FEM_PhysicalDomain::BPhi))
+    .def(pyublas::by_value_ro_member("BdPhidn", &fem::FEM_PhysicalDomain::BdPhidn))
+    .def(pyublas::by_value_ro_member("SCharge", &fem::FEM_PhysicalDomain::SCharge))
     ;
 }

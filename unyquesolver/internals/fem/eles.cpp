@@ -4,7 +4,7 @@
 ElEs::ElEs() {
 }
 //------------------------------------------------------------------------------
-ElEs::ElEs(fem::FEM_Domain *is, FEM_Common *ic) {
+ElEs::ElEs(fem::FEM_PhysicalDomain *is, FEM_Common *ic) {
   s = is;
   c = ic;
   nelem = is->nelem;
