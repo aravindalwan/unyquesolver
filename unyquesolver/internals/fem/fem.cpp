@@ -131,6 +131,17 @@ void fem::FEM_PhysicalDomain::InitDOFs() {
 
 }
 //------------------------------------------------------------------------------
+fem::FEM_FluidDomain::FEM_FluidDomain() : fem::FEM_Domain() {
+}
+//------------------------------------------------------------------------------
+void fem::FEM_FluidDomain::InitDOFs() {
+
+  Pf = unyque::DVector_zero(nnode);
+
+  H = unyque::DVector_scalar(nnode, 2.0);
+
+}
+//------------------------------------------------------------------------------
 FEM_Common::FEM_Common() {
   DEBUG = 0;
   Phi_mult = 1; Phi_inf = 0;

@@ -99,7 +99,23 @@ namespace fem {
     void InitDOFs();
 
   };
+  //------------------------------------------------------------------------------
+  class FEM_FluidDomain: public FEM_Domain {
+  public:
+    // Fluid pressure fluctuations
+    pyublas::numpy_vector<double> Pf;
 
+    // Gap height
+    pyublas::numpy_vector<double> H;
+
+  public:
+    FEM_FluidDomain();
+    ~FEM_FluidDomain() {};
+
+    // Initialization
+    void InitDOFs();
+
+  };
 }
 //------------------------------------------------------------------------------
 class FEM_Common {
