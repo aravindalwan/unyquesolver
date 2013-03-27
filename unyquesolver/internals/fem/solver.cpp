@@ -80,7 +80,7 @@ fem::Solver::~Solver() {
 void fem::Solver::Init(bp::list nodes, bp::list edges, bp::list elements) {
 
   // Initialize FEM surface object using nodes, edges and elements data
-  s = new FEM_Surface2D();
+  s = new FEM_Domain();
   s->SetID(1);
   s->SetMesh(nodes, edges, elements);
 
@@ -248,7 +248,7 @@ bp::object fem::Solver::ElectrothermalActuation() {
   // Solve the coupled electrothermal actuation problem
   unyque::DVector oldU, oldV;
   double err, eps = 1e-6, disp, maxValue = c->Phi_mult;
-  FEM_Point2D *maxPoint = NULL;
+  FEM_Point *maxPoint = NULL;
   int i, counter = 1, numSteps = 1;
 
   oldU.resize(s->nnode); oldV.resize(s->nnode);
@@ -295,7 +295,7 @@ bp::object fem::Solver::HybridETMActuation() {
   // Solve the hybrid electrothermomechanical actuation problem
   unyque::DVector oldU, oldV;
   double err, prevErr = 1.0, eps = 1e-6, disp, maxValue = c->Phi_mult;
-  FEM_Point2D *maxPoint = NULL;
+  FEM_Point *maxPoint = NULL;
   int i, counter = 1, numSteps = 1;
   bool pulledIn = false;
 

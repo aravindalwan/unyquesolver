@@ -10,7 +10,7 @@
 #include "function.hpp"
 namespace bp = boost::python;
 
-// Define point type for FEM_Point2D
+// Define point type for FEM_Point
 #define INTERIOR 0
 #define BOUNDARY 1
 
@@ -34,19 +34,19 @@ namespace fem {
 	     int n1, int n2, int n3);
   };
   //----------------------------------------------------------------------------
-  class FEM_Point2D {
+  class FEM_Point {
   public:
     double x, y; // deformed coordinates, not used in electrostatics
     int id;
     int bmarker; // Boundary Marker for each point
-    FEM_Point2D(double ix, double iy);
-    FEM_Point2D(int pid, int bm, double ix, double iy);
+    FEM_Point(double ix, double iy);
+    FEM_Point(int pid, int bm, double ix, double iy);
   };
   //----------------------------------------------------------------------------
-  class FEM_Surface2D {
+  class FEM_Domain {
   public:
-    vector<FEM_Point2D *> Nodes, RefNodes;
-    vector<FEM_Point2D *> BNodes;
+    vector<FEM_Point *> Nodes, RefNodes;
+    vector<FEM_Point *> BNodes;
     vector<FEM_Element *> Elements;
     vector<FEM_Edge *> Edges;
     vector<FEM_Edge *> BEdges;
@@ -73,8 +73,8 @@ namespace fem {
     unyque::DMatrix Ent;
 
   public:
-    FEM_Surface2D();
-    ~FEM_Surface2D() {};
+    FEM_Domain();
+    ~FEM_Domain() {};
 
     // Initialization
     void SetID(int a) {id = a;};

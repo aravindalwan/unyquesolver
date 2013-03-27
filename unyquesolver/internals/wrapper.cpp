@@ -9,7 +9,7 @@ BOOST_PYTHON_MODULE(_internals)
 {
 
   class_<fem::Solver>("Solver", init<int, list>())
-    // Reference the Surface2D object pointer as an attribute
+    // Reference the Domain object pointer as an attribute
     // stackoverflow.com/questions/2541446/exposing-a-pointer-in-boost-python
     .add_property("domain",
 		  make_getter(&fem::Solver::s,
@@ -42,22 +42,22 @@ BOOST_PYTHON_MODULE(_internals)
     .def_readwrite("node3", &fem::FEM_Edge::node3)
     ;
 
-  class_<fem::FEM_Point2D>("Point",
+  class_<fem::FEM_Point>("Point",
 			   init<int, int, double, double>())
-    .def_readwrite("id", &fem::FEM_Point2D::id)
-    .def_readwrite("boundary_marker", &fem::FEM_Point2D::bmarker)
-    .def_readwrite("x", &fem::FEM_Point2D::x)
-    .def_readwrite("y", &fem::FEM_Point2D::y)
+    .def_readwrite("id", &fem::FEM_Point::id)
+    .def_readwrite("boundary_marker", &fem::FEM_Point::bmarker)
+    .def_readwrite("x", &fem::FEM_Point::x)
+    .def_readwrite("y", &fem::FEM_Point::y)
     ;
 
-  class_<fem::FEM_Surface2D>("Surface")
-    .def(pyublas::by_value_ro_member("U", &fem::FEM_Surface2D::U))
-    .def(pyublas::by_value_ro_member("V", &fem::FEM_Surface2D::V))
-    .def(pyublas::by_value_ro_member("T", &fem::FEM_Surface2D::T))
-    .def(pyublas::by_value_ro_member("Told", &fem::FEM_Surface2D::Told))
-    .def(pyublas::by_value_ro_member("Phi", &fem::FEM_Surface2D::Phi))
-    .def(pyublas::by_value_ro_member("BPhi", &fem::FEM_Surface2D::BPhi))
-    .def(pyublas::by_value_ro_member("BdPhidn", &fem::FEM_Surface2D::BdPhidn))
-    .def(pyublas::by_value_ro_member("SCharge", &fem::FEM_Surface2D::SCharge))
+  class_<fem::FEM_Domain>("Surface")
+    .def(pyublas::by_value_ro_member("U", &fem::FEM_Domain::U))
+    .def(pyublas::by_value_ro_member("V", &fem::FEM_Domain::V))
+    .def(pyublas::by_value_ro_member("T", &fem::FEM_Domain::T))
+    .def(pyublas::by_value_ro_member("Told", &fem::FEM_Domain::Told))
+    .def(pyublas::by_value_ro_member("Phi", &fem::FEM_Domain::Phi))
+    .def(pyublas::by_value_ro_member("BPhi", &fem::FEM_Domain::BPhi))
+    .def(pyublas::by_value_ro_member("BdPhidn", &fem::FEM_Domain::BdPhidn))
+    .def(pyublas::by_value_ro_member("SCharge", &fem::FEM_Domain::SCharge))
     ;
 }

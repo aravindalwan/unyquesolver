@@ -14,15 +14,15 @@ fem::FEM_Edge::FEM_Edge(int edid, int elementnum, int edgetype, int bm,
   node1 = n1; node2 = n2; node3 = n3;
 }
 //------------------------------------------------------------------------------
-fem::FEM_Point2D::FEM_Point2D(double ix, double iy) {
+fem::FEM_Point::FEM_Point(double ix, double iy) {
   id = 0; x = ix; y = iy; bmarker = 0;
 }
 //------------------------------------------------------------------------------
-fem::FEM_Point2D::FEM_Point2D(int pid, int bm, double ix, double iy) {
+fem::FEM_Point::FEM_Point(int pid, int bm, double ix, double iy) {
   id = pid; bmarker = bm; x = ix; y = iy;
 }
 //------------------------------------------------------------------------------
-fem::FEM_Surface2D::FEM_Surface2D() {
+fem::FEM_Domain::FEM_Domain() {
   Nodes.push_back(NULL);
   RefNodes.push_back(NULL);
   Elements.push_back(NULL);
@@ -33,7 +33,7 @@ fem::FEM_Surface2D::FEM_Surface2D() {
   id = -1;
 }
 //------------------------------------------------------------------------------
-void fem::FEM_Surface2D::SetMesh(bp::list nodes, bp::list edges,
+void fem::FEM_Domain::SetMesh(bp::list nodes, bp::list edges,
 				 bp::list elements) {
 
   SetNodes(nodes);
@@ -43,17 +43,17 @@ void fem::FEM_Surface2D::SetMesh(bp::list nodes, bp::list edges,
 
 }
 //------------------------------------------------------------------------------
-void fem::FEM_Surface2D::SetNodes(bp::list nodes) {
+void fem::FEM_Domain::SetNodes(bp::list nodes) {
 
   int bpid = 0;
-  fem::FEM_Point2D *pp, *ppref;
+  fem::FEM_Point *pp, *ppref;
 
   nnode = bp::len(nodes);
 
   for (int i = 0; i < nnode; i++) {
-    pp = bp::extract<fem::FEM_Point2D*>(nodes[i])();
+    pp = bp::extract<fem::FEM_Point*>(nodes[i])();
     Nodes.push_back(pp);
-    ppref = new fem::FEM_Point2D(pp->x, pp->y);
+    ppref = new fem::FEM_Point(pp->x, pp->y);
     ppref->id = pp->id;
     ppref->bmarker = pp->bmarker;
     RefNodes.push_back(ppref);
@@ -66,7 +66,7 @@ void fem::FEM_Surface2D::SetNodes(bp::list nodes) {
 
 }
 //------------------------------------------------------------------------------
-void fem::FEM_Surface2D::SetEdges(bp::list edges) {
+void fem::FEM_Domain::SetEdges(bp::list edges) {
 
   int bpid = 0;
   fem::FEM_Edge *ed;
@@ -87,7 +87,7 @@ void fem::FEM_Surface2D::SetEdges(bp::list edges) {
 
 }
 //------------------------------------------------------------------------------
-void fem::FEM_Surface2D::SetElements(bp::list elements) {
+void fem::FEM_Domain::SetElements(bp::list elements) {
 
   fem::FEM_Element *ee;
 
@@ -100,7 +100,7 @@ void fem::FEM_Surface2D::SetElements(bp::list elements) {
 
 }
 //------------------------------------------------------------------------------
-void fem::FEM_Surface2D::InitDOFs() {
+void fem::FEM_Domain::InitDOFs() {
 
   U = unyque::DVector_zero(nnode); V = unyque::DVector_zero(nnode);
 
@@ -116,9 +116,9 @@ void fem::FEM_Surface2D::InitDOFs() {
 
 }
 //------------------------------------------------------------------------------
-void fem::FEM_Surface2D::MoveMesh(unyque::DMatrix &displacement) {
+void fem::FEM_Domain::MoveMesh(unyque::DMatrix &displacement) {
 
-  fem::FEM_Point2D *pp, *ppref;
+  fem::FEM_Point *pp, *ppref;
   for (int i = 0; i < nnode; i++) {
     pp = Nodes[i+1];
     ppref = RefNodes[i+1];

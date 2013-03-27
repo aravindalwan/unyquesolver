@@ -39,7 +39,7 @@ namespace fem {
     bp::object Solve(bp::list params);
 
     FEM_Common *c;
-    FEM_Surface2D *s;
+    FEM_Domain *s;
 
   private:
 

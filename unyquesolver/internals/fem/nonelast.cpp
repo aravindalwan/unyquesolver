@@ -4,7 +4,7 @@
 NonElast::NonElast() {
 }
 //------------------------------------------------------------------------------
-NonElast::NonElast(fem::FEM_Surface2D *is, FEM_Common *ic) {
+NonElast::NonElast(fem::FEM_Domain *is, FEM_Common *ic) {
   s = is;
   c = ic;
   nelem = is->nelem;
@@ -837,7 +837,7 @@ void NonElast::ConstructGlobalU() {
 //------------------------------------------------------------------------------
 void NonElast::PrintResults() {
   FILE *fp;
-  fem::FEM_Point2D *pp;
+  fem::FEM_Point *pp;
   fp = fopen("postproc/UV.dat","w");
   for (int i = 0; i < nnode; i++) {
     pp = s->Nodes[i+1];

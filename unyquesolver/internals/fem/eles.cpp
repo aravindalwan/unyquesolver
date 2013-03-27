@@ -4,7 +4,7 @@
 ElEs::ElEs() {
 }
 //------------------------------------------------------------------------------
-ElEs::ElEs(fem::FEM_Surface2D *is, FEM_Common *ic) {
+ElEs::ElEs(fem::FEM_Domain *is, FEM_Common *ic) {
   s = is;
   c = ic;
   nelem = is->nelem;
@@ -846,7 +846,7 @@ void ElEs::UpdateGlobalPotentials() {
 //------------------------------------------------------------------------------
 void ElEs::PrintResults() {
   FILE *fp = NULL, *fp2 = NULL;
-  fem::FEM_Point2D *pp;
+  fem::FEM_Point *pp;
   fem::FEM_Edge *ed;
   unyque::DMatrix Ecoor, dN, B, Finv;
   unyque::DVector Phie, N, nX(2), nx(2), tx(2), EX(2), Ex(2);

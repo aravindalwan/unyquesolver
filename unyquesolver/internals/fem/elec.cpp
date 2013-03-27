@@ -4,7 +4,7 @@
 Elec::Elec() {
 }
 //------------------------------------------------------------------------------
-Elec::Elec(fem::FEM_Surface2D *is, FEM_Common *ic) {
+Elec::Elec(fem::FEM_Domain *is, FEM_Common *ic) {
   s = is;
   c = ic;
   nelem = is->nelem;
@@ -602,7 +602,7 @@ void Elec::UpdateGlobalPotential() {
 //------------------------------------------------------------------------------
 void Elec::PrintResults() {
   FILE *fp;
-  fem::FEM_Point2D *pp;
+  fem::FEM_Point *pp;
   double xval, yval;
 
   fp = fopen("postproc/phi.dat","w");
