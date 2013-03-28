@@ -25,6 +25,7 @@ namespace bp = boost::python;
 #define HYBRID_ELECTROSTATICS     6
 #define HYBRID_ETM_ACTUATION      7
 #define HYBRID_ETM_PULLIN         8
+#define HYBRID_ETM_DYNAMIC        9
 
 namespace fem {
 
@@ -43,7 +44,7 @@ namespace fem {
 
   private:
 
-    bool useNonElast, useTherm, useElec, useElEs;
+    bool useNonElast, useTherm, useElec, useElEs, useFluid;
     int nParams, *paramType;
 
     NonElast *nelast;
@@ -62,6 +63,7 @@ namespace fem {
     bp::object HybridElectrostatics();
     bp::object HybridETMActuation();
     bp::object HybridETMPullin();
+    bp::object HybridETMDynamic();
 
   };
 
