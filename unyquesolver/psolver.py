@@ -22,7 +22,7 @@ For a copy of the GNU General Public License, please see
 import mpihelper
 import logmanager
 import unyquesolver._internals as internals
-from mesh import PhysicalDomain
+from mesh import Domain
 
 # MPI Tags
 PARAMETER_SET = 1 # Tag for messages containing parameter sets
@@ -61,7 +61,7 @@ class ParametricSolver(object):
         '''
 
         # Initialize physical domain on which PDE is solved
-        self.pdomain = PhysicalDomain(*self.domain_parameters)
+        self.pdomain = Domain(*self.domain_parameters)
 
         # Remove SPATIALLY_VARYING_BOUNDARY from list of parameters before
         # initializing solver. This parameter will be handled separately
@@ -121,7 +121,7 @@ class ParametricSolverMaster(ParametricSolver):
         '''Initialize the solver on the master node.
 
         Arguments:
-        domain_parameters -- Parameters used to initialize PhysicalDomain object
+        domain_parameters -- Parameters used to initialize Domain objects
         analysis -- Number corresponding to one of the FEM Solver analysis modes
         pvariable -- List of FEM Solver input parameter types
         pfixed -- List of fixed parameters, specified as (type, value) tuples

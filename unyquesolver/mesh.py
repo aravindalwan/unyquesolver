@@ -1,6 +1,6 @@
-'''Mesh generator for physical domains on which PDEs are solved'''
+'''Mesh generator for domains on which PDEs are solved'''
 
-__copyright__ = 'Copyright (C) 2012 Aravind Alwan'
+__copyright__ = 'Copyright (C) 2012-2013 Aravind Alwan'
 
 __license__ = '''
 This file is part of UnyQuE.
@@ -26,7 +26,7 @@ import operator
 from meshpy.triangle import MeshInfo, build
 import unyquesolver._internals as internals
 
-class PhysicalDomain(object):
+class Domain(object):
     '''Object that encapsulates the physical domain on which a PDE is solved
     '''
 
