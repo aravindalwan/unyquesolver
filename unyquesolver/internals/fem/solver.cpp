@@ -139,7 +139,7 @@ void fem::Solver::Init(bp::list nodes, bp::list edges, bp::list elements) {
   }
 
   if (useElEs) {
-    //----------create and initialize ElEs
+    // Create and initialize ElEs
     if (c->DEBUG) cout<<"Initializing hybrid electrostatics module ... ";
     delete eles;
     eles = new ElEs(s, c);
@@ -442,49 +442,40 @@ bp::object fem::Solver::HybridETMDynamic() {
 
   // Solve the hybrid electrothermomechanical actuation problem
   unyque::DVector oldU, oldV;
-  double err, prevErr = 1.0, eps = 1e-6, disp, maxValue = c->Phi_mult;
+  double err, prevErr = -1.0, eps = 1e-6, disp;
   FEM_Point *maxPoint = NULL;
-  int i, counter = 1, numSteps = 1;
   bool pulledIn = false;
 
   oldU.resize(s->nnode); oldV.resize(s->nnode);
   oldU = unyque::DVector_zero(s->nnode); oldV = unyque::DVector_zero(s->nnode);
 
+  pulledIn = 0;
   do {
 
-    c->Phi_mult = (((double)counter)/numSteps)*maxValue;
-    i = 0; pulledIn = 0;
-    do {
+    eles->SolveStatic();
+    therm->SolveStatic();
+    nelast->SolveStatic();
 
-      eles->SolveStatic();
-      therm->SolveStatic();
-      nelast->SolveStatic();
+    err = max(ublas::norm_inf((s->U)-oldU), ublas::norm_inf((s->V)-oldV));
+    oldU = (s->U); oldV = (s->V);
 
-      err = max(ublas::norm_inf((s->U)-oldU), ublas::norm_inf((s->V)-oldV));
-      oldU = (s->U); oldV = (s->V);
-
-      if ((i > 0) && ((err > prevErr)||(ublas::norm_inf(s->V) > newGap))) {
-	pulledIn = true;
-	break;
-      }
-
-      prevErr = err;
-
-      i++;
-
-    } while (err > eps);
-
-    if (!pulledIn) {
-      maxPoint = s->Nodes[nelast->MaxAbsDispPoint(-1)];
-      disp = (s->V)(maxPoint->id - 1);
-    } else {
-      disp = -newGap;
-      s->InitDOFs();
+    if ((prevErr > 0) && ((err > prevErr)||(ublas::norm_inf(s->V) > newGap))) {
+      pulledIn = true;
+      break;
     }
 
-    counter++;
+    prevErr = err;
 
-  } while (counter <= numSteps);
+  } while (err > eps);
+
+  if (!pulledIn) {
+    maxPoint = s->Nodes[nelast->MaxAbsDispPoint(-1)];
+    disp = (s->V)(maxPoint->id - 1);
+  } else {
+    disp = -newGap;
+    s->InitDOFs();
+    sf->InitDOFs();
+  }
 
   return bp::object(nelast->DispBoundaryEdge(1, -1));
 
