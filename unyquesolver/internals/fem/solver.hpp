@@ -36,11 +36,13 @@ namespace fem {
     Solver(int analysisType, bp::list pType);
     ~Solver();
 
+    void InitFluid(bp::list nodes, bp::list edges, bp::list elements);
     void Init(bp::list nodes, bp::list edges, bp::list elements);
     bp::object Solve(bp::list params);
 
     FEM_Common *c;
     FEM_PhysicalDomain *s;
+    FEM_FluidDomain *sf;
 
   private:
 

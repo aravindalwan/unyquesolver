@@ -60,14 +60,21 @@ class ParametricSolver(object):
         parameters have been defined.
         '''
 
-        # Initialize physical domain on which PDE is solved
-        self.pdomain = Domain(*self.domain_parameters)
-
         # Remove SPATIALLY_VARYING_BOUNDARY from list of parameters before
         # initializing solver. This parameter will be handled separately
         parameters = [param for param in self.parameters
                       if param != SPATIALLY_VARYING_BOUNDARY]
         self._solver = internals.Solver(self.analysis, parameters)
+
+        # Initialize physical domain on which elasticity PDE is solved
+        self.pdomain = Domain(*self.domain_parameters[0])
+
+        if len(self.domain_parameters) > 1:
+            # Initialize fluid domain on which damping PDE is solved
+            self.fdomain = Domain(*self.domain_parameters[1])
+            self._solver.InitFluid(self.fdomain.nodes, self.fdomain.edges,
+                          self.fdomain.elements)
+
         self._solver.Init(self.pdomain.nodes, self.pdomain.edges,
                           self.pdomain.elements)
 

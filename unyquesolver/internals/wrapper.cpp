@@ -14,6 +14,7 @@ BOOST_PYTHON_MODULE(_internals)
     .add_property("physical_domain",
 		  make_getter(&fem::Solver::s,
 			      return_value_policy<reference_existing_object>()))
+    .def("InitFluid", &fem::Solver::InitFluid)
     .def("Init", &fem::Solver::Init)
     .def("Solve", &fem::Solver::Solve)
     ;

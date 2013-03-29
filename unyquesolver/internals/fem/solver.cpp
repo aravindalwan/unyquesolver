@@ -3,10 +3,14 @@
 fem::Solver::Solver(int analysisType, bp::list pType) {
 
   c = new FEM_Common();
-  useNonElast = false;
-  useTherm = false;
-  useElec = false;
-  useElEs = false;
+  s = NULL;
+  sf = NULL;
+
+  useNonElast = useTherm = useElec = useElEs = false;
+  nelast = NULL;
+  therm = NULL;
+  elec = NULL;
+  eles = NULL;
 
   switch(analysisType) {
   case MECHANICS:
@@ -79,21 +83,38 @@ fem::Solver::~Solver() {
     delete eles;
 
   delete c;
+  delete sf;
   delete s;
   delete paramType;
 
 }
 //------------------------------------------------------------------------------
+void fem::Solver::InitFluid(bp::list nodes, bp::list edges, bp::list elements) {
+
+  // Initialize fluid domain object using nodes, edges and elements data
+  delete sf;
+  sf = new FEM_FluidDomain();
+  sf->SetID(0);
+  sf->SetMesh(nodes, edges, elements);
+
+}
+//------------------------------------------------------------------------------
 void fem::Solver::Init(bp::list nodes, bp::list edges, bp::list elements) {
 
-  // Initialize FEM surface object using nodes, edges and elements data
+  // Initialize physical domain object using nodes, edges and elements data
+  delete s;
   s = new FEM_PhysicalDomain();
   s->SetID(1);
   s->SetMesh(nodes, edges, elements);
 
+  // Re-initialize fluid domain DOFs
+  if (sf != NULL)
+    sf->InitDOFs();
+
   if (useNonElast) {
     // Create and initialize Nelast
     if (c->DEBUG) cout<<"Initializing nonlinear mechanics module ... ";
+    delete nelast;
     nelast = new NonElast(s, c);
     nelast->Init();
     if (c->DEBUG) cout<<"done"<<endl;
@@ -102,6 +123,7 @@ void fem::Solver::Init(bp::list nodes, bp::list edges, bp::list elements) {
   if (useTherm) {
     // Create and initialize Thermal
     if (c->DEBUG) cout<<"Initializing thermal module ... ";
+    delete therm;
     therm = new Therm(s, c);
     therm->Init();
     if (c->DEBUG) cout<<"done"<<endl;
@@ -110,6 +132,7 @@ void fem::Solver::Init(bp::list nodes, bp::list edges, bp::list elements) {
   if (useElec) {
     // Create and initialize Electrical
     if (c->DEBUG) cout<<"Initializing electrical module ... ";
+    delete elec;
     elec = new Elec(s, c);
     elec->Init();
     if (c->DEBUG) cout<<"done"<<endl;
@@ -118,6 +141,7 @@ void fem::Solver::Init(bp::list nodes, bp::list edges, bp::list elements) {
   if (useElEs) {
     //----------create and initialize ElEs
     if (c->DEBUG) cout<<"Initializing hybrid electrostatics module ... ";
+    delete eles;
     eles = new ElEs(s, c);
     eles->Init();
     if (c->DEBUG) cout<<"done"<<endl;
