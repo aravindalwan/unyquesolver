@@ -32,7 +32,7 @@ void NonElast::Init() {
   hatSvec = unyque::DVector_zero(3);
 
   char filename[100];
-  sprintf(filename,"./conf/mechanical.%d.conf",s->id);
+  sprintf(filename,"./conf/mechanical.conf");
   ReadNonelast(filename);
   SetD();
   GenerateENC();

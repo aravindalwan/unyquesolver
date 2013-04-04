@@ -26,7 +26,7 @@ void Elec::Init() {
   Init_GIntegration();
 
   EC = 0.0; Qj = 0.0;
-  sprintf(filename,"./conf/electrical.%d.conf",s->id);
+  sprintf(filename,"./conf/electrical.conf");
   ReadElec(filename);
   GenerateENC();
   MapDOFs();

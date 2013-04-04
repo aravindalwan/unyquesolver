@@ -27,7 +27,7 @@ void ElEs::Init() {
 
   EPS0 = 8.85434e-12; EC = 0.0; EC0 = 0.0;
   Lengths = unyque::DVector_zero(nbedge);
-  sprintf(filename,"./conf/electricalelectrostatic.%d.conf",s->id);
+  sprintf(filename,"./conf/electricalelectrostatic.conf");
   ReadElEs(filename);
   GenerateENC();
   MapDOFs();

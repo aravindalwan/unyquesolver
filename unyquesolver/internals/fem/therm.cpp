@@ -28,7 +28,7 @@ void Therm::Init() {
   t = 0; dt = 0;
   JouleHeating = 0; TC = 0.0; dTCdT = 0.0; Qext = 0.0; Q = 0.0;
   Ht = 0.0; Hb = 0.0; Tinf = 0.0; Thickness = 1.0;
-  sprintf(filename,"./conf/thermal.%d.conf",s->id);
+  sprintf(filename,"./conf/thermal.conf");
   ReadTherm(filename);
   GenerateENC();
   MapDOFs();
