@@ -20,6 +20,7 @@ For a copy of the GNU General Public License, please see
 '''
 
 import mpihelper
+import logmanager
 import unyquesolver._internals as internals
 from mesh import PhysicalDomain
 
@@ -111,6 +112,10 @@ class ParametricSolverMaster(ParametricSolver):
     queue.
     '''
 
+    # Initialize loggers used in this class
+    _log = logmanager.getLogger('unyquesolver.psolver')
+    _results_log = logmanager.getLogger('unyquesolver.results')
+
     def __init__(self, domain_parameters, analysis, pvariable, pfixed):
         '''Initialize the solver on the master node.
 
@@ -134,23 +139,32 @@ class ParametricSolverMaster(ParametricSolver):
         self.fixed_parameter_values = [param[1] for param in pfixed]
 
         # Broadcast FEM solver configuration data to workers
+        self._log.info('Broadcasting FEM solver parameters to workers')
         self.comm.bcast(self.domain_parameters, root = mpihelper.MASTER)
         self.comm.bcast(self.analysis, root = mpihelper.MASTER)
         self.comm.bcast(self.parameters, root = mpihelper.MASTER)
         self.comm.bcast(self.fixed_parameter_values, root = mpihelper.MASTER)
 
         # Initialize FEM solver
+        self._log.info('Initializing FEM solver')
         self._init_solver()
 
         self.parameter_sets = None
 
-    def __call__(self, parameter_sets):
+    def __call__(self, parameter_sets, postprocessor = None,  tag = ''):
         '''Evaluate the solution for each of the parameters sets in the given
         list. The list of parameter sets is treated as a task queue, from which
         tasks are assigned sequentially to workers on a first-come-first-served
         basis. The results returned by the workers are indexed by the position
         variable and the final list of results is returned as a generator.
+
+        Arguments:
+        parameter_sets -- list of parameter sets
+        postprocessor -- function used to post-process result before logging
+        tag -- string used to identify the result at a later stage
         '''
+
+        self._log.info('Working on %d parameter sets' % len(parameter_sets))
 
         # Notify workers that we have a new set of tasks
         self.comm.bcast(True, root = mpihelper.MASTER)
@@ -184,14 +198,37 @@ class ParametricSolverMaster(ParametricSolver):
                 # Assign the waiting worker a new task
                 active_workers -= self._send_next_set(waiting_worker)
 
+                # Log this result
+                meta_data = {'replicate': position, 'raw_result': result,
+                             'tag': tag}
+                if postprocessor:
+                    meta_data['result'] = postprocessor(result)
+                self._results_log.log(logmanager.REPLICATE,
+                                      'Replicate: %(replicate)3d     ' +
+                                      'Result: %(result)1.6f     Tag: %(tag)s',
+                                      meta_data, extra = meta_data)
+
                 # Yield the result along with its position in the results list
                 yield (position, result)
 
         else: # Run parametric solver on a single processor
 
             while self.parameter_sets:
+
                 result = self._get_solution(self.parameter_sets.pop())
                 position = len(self.parameter_sets)
+
+                # Log this result
+                meta_data = {'replicate': position, 'raw_result': result,
+                             'tag': tag}
+                if postprocessor:
+                    meta_data['result'] = postprocessor(result)
+                self._results_log.log(logmanager.REPLICATE,
+                                      'Replicate: %(replicate)3d     ' +
+                                      'Result: %(result)1.6f     Tag: %(tag)s',
+                                      meta_data, extra = meta_data)
+
+                # Yield the result along with its position in the results list
                 yield (position, result)
 
     def _send_next_set(self, destination):
