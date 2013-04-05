@@ -106,7 +106,7 @@ namespace fem {
   class FEM_FluidDomain: public FEM_Domain {
   public:
     // Fluid pressure fluctuations
-    pyublas::numpy_vector<double> Pf, Pfold;
+    pyublas::numpy_vector<double> P, Pold;
 
     // Gap height
     pyublas::numpy_vector<double> H;

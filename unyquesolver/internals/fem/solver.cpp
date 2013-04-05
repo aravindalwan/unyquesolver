@@ -81,6 +81,8 @@ fem::Solver::~Solver() {
     delete elec;
   if (useElEs)
     delete eles;
+  if (useFluid)
+    delete fluid;
 
   delete c;
   delete sf;
@@ -96,6 +98,15 @@ void fem::Solver::InitFluid(bp::list nodes, bp::list edges, bp::list elements) {
   sf = new FEM_FluidDomain();
   sf->SetID(0);
   sf->SetMesh(nodes, edges, elements);
+
+  if (useFluid) {
+    // Create and initialize Fluid
+    if (c->DEBUG) cout<<"Initializing fluid damping module ... ";
+    delete fluid;
+    fluid = new Fluid(s, sf, c);
+    fluid->Init();
+    if (c->DEBUG) cout<<"done"<<endl;
+  }
 
 }
 //------------------------------------------------------------------------------

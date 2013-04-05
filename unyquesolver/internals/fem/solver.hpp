@@ -8,6 +8,7 @@
 #include "therm.hpp"
 #include "elec.hpp"
 #include "eles.hpp"
+#include "fluid.hpp"
 namespace bp = boost::python;
 
 // Define parameters
@@ -53,6 +54,7 @@ namespace fem {
     Therm *therm;
     Elec *elec;
     ElEs *eles;
+    Fluid *fluid;
     double newGap, originalGap;
 
     bp::object (Solver::*analysis)();
