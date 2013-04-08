@@ -201,12 +201,12 @@ class ParametricSolverMaster(ParametricSolver):
                 # Log this result
                 meta_data = {'replicate': position, 'raw_result': result,
                              'tag': tag}
+                logmessage = 'Replicate: %(replicate)3d     Tag: %(tag)s'
                 if postprocessor:
                     meta_data['result'] = postprocessor(result)
+                    logmessage = logmessage + '     Result: %(result)1.6f'
                 self._results_log.log(logmanager.REPLICATE,
-                                      'Replicate: %(replicate)3d     ' +
-                                      'Result: %(result)1.6f     Tag: %(tag)s',
-                                      meta_data, extra = meta_data)
+                                      logmessage, meta_data, extra = meta_data)
 
                 # Yield the result along with its position in the results list
                 yield (position, result)
@@ -221,12 +221,12 @@ class ParametricSolverMaster(ParametricSolver):
                 # Log this result
                 meta_data = {'replicate': position, 'raw_result': result,
                              'tag': tag}
+                logmessage = 'Replicate: %(replicate)3d     Tag: %(tag)s'
                 if postprocessor:
                     meta_data['result'] = postprocessor(result)
+                    logmessage = logmessage + '     Result: %(result)1.6f'
                 self._results_log.log(logmanager.REPLICATE,
-                                      'Replicate: %(replicate)3d     ' +
-                                      'Result: %(result)1.6f     Tag: %(tag)s',
-                                      meta_data, extra = meta_data)
+                                      logmessage, meta_data, extra = meta_data)
 
                 # Yield the result along with its position in the results list
                 yield (position, result)
