@@ -108,6 +108,9 @@ namespace fem {
     // Fluid pressure fluctuations
     pyublas::numpy_vector<double> P, Pold;
 
+    // Projection of mechanical displacement on fluid domain
+    pyublas::numpy_vector<double> U;
+
     // Gap height
     pyublas::numpy_vector<double> H;
 
