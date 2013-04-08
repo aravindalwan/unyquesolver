@@ -68,15 +68,14 @@ class ParametricSolver(object):
 
         # Initialize physical domain on which elasticity PDE is solved
         self.pdomain = Domain(*self.domain_parameters[0])
+        self._solver.Init(self.pdomain.nodes, self.pdomain.edges,
+                          self.pdomain.elements)
 
         if len(self.domain_parameters) > 1:
             # Initialize fluid domain on which damping PDE is solved
             self.fdomain = Domain(*self.domain_parameters[1])
             self._solver.InitFluid(self.fdomain.nodes, self.fdomain.edges,
                           self.fdomain.elements)
-
-        self._solver.Init(self.pdomain.nodes, self.pdomain.edges,
-                          self.pdomain.elements)
 
     def _get_solution(self, pset):
         '''Compute the solution for the given parameter set.

@@ -202,7 +202,7 @@ void Fluid::ReadFluid(char *filename) {
 void Fluid::GenerateENC() {
   fem::FEM_Element *ee;
   for (int i = 1; i <= nelem; i++) {
-    ee = s->Elements[i];
+    ee = sf->Elements[i];
     ENC(i-1,0) = i;
     ENC(i-1,1) = ee->node1;
     ENC(i-1,2) = ee->node2;
@@ -229,7 +229,7 @@ void Fluid::MapDOFs() {
   // Loop over boundary edges
   for (int eid = 0; eid < nbedge; eid++) {
 
-    ed = s->BEdges[eid+1];
+    ed = sf->BEdges[eid+1];
     bcno = -1;
     // Find the b.c. no: corresponding to the edge's marker (Default -1)
     for (int i = 0; i < nbc; i++) {

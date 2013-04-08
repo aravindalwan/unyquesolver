@@ -6,11 +6,12 @@ fem::Solver::Solver(int analysisType, bp::list pType) {
   s = NULL;
   sf = NULL;
 
-  useNonElast = useTherm = useElec = useElEs = false;
+  useNonElast = useTherm = useElec = useElEs = useFluid = false;
   nelast = NULL;
   therm = NULL;
   elec = NULL;
   eles = NULL;
+  fluid = NULL;
 
   switch(analysisType) {
   case MECHANICS:
