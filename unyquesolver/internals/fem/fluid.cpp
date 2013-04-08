@@ -261,27 +261,26 @@ void Fluid::SolveDynamic(double tn, double dtn) {
   double err = 1.0, eps = 1e-10;
   t = tn; dt = dtn;
 
-  // Compute gap height at every node in the fluid domain
-  CompGapHeight();
+  // Map quantities from physical domain to fluid domain
+  MapPhysicalToFluid();
 
-  // // Store current pressure as the pressure at the prev timestep, Pold
-  // for (int i = 0; i < nnode; i++)
-  //   (sf->Pold)(i) = (sf->P)(i);
+  // Store current pressure as the pressure at the prev timestep, Pold
+  copy((sf->P).begin(), (sf->P).end(), (sf->Pold).begin());
 
-  // // Solve for the pressure at the end of new timestep
-  // ApplyInhomogeneousDBC();
-  // do {
-  //   K.resize(ndof,ndof);
-  //   RHS = unyque::DVector_zero(ndof);
-  //   dU = unyque::DVector_zero(ndof);
-  //   CompDomIntegrals();
+  // Solve for the pressure at the end of new timestep
+  ApplyInhomogeneousDBC();
+  do {
+    K.resize(ndof,ndof);
+    RHS = unyque::DVector_zero(ndof);
+    dU = unyque::DVector_zero(ndof);
+    //  CompDomIntegrals();
   //   ApplyBC();
   //   dU = unyque::umfpackSolve(K, RHS);
-  //   err = ublas::norm_inf(dU);
+    err = ublas::norm_inf(dU);
   //   UpdateGlobalPressure();
   //   iter++;
   //   //if (c->DEBUG) cout<<"iteration: "<<iter<<"  Error: "<<err<<endl;
-  // } while (err > eps);
+  } while (err > eps);
   // if (c->DEBUG) PrintResults();
   // if (c->DEBUG)
   //   cout<<"No. of steps: "<<iter<<"   Max. change in pressure: "<<
@@ -289,14 +288,14 @@ void Fluid::SolveDynamic(double tn, double dtn) {
 
 }
 //------------------------------------------------------------------------------
-void Fluid::CompGapHeight() {
+void Fluid::MapPhysicalToFluid() {
 
   int nMEdge, nFEdge, bcno;
   fem::FEM_Edge *ed;
 
   movingEdge = 1; fixedEdge = 7;
 
-  fill((sf->H).begin(), (sf->H).end(), 2 + 0.2*cos(2*atan2(1,1)*10*t));
+  fill((sf->H).begin(), (sf->H).end(), 2 + 0.2*cos(2*4*atan2(1,1)*10*t));
 
 }
 //------------------------------------------------------------------------------
@@ -308,7 +307,7 @@ void Fluid::ApplyInhomogeneousDBC() {
   // Loop over boundary edges
   for (int eid = 0; eid < nbedge; eid++) {
 
-    ed = s->BEdges[eid+1];
+    ed = sf->BEdges[eid+1];
     bcno = -1;
     // Find the b.c. no: corresponding to the edge's marker (Default -1)
     for (int i = 0; i < nbc; i++) {
@@ -316,11 +315,11 @@ void Fluid::ApplyInhomogeneousDBC() {
     }
 
     // If it is a Dirichlet b.c. then initialize the corresponding nodes in the
-    // solution vector with the value of the prescribed temperature
+    // solution vector with the value of the prescribed pressure
     if (BCtype(bcno,1) == 1) {
-      (s->T)(ed->node1 - 1) = BCvals(bcno,0);
-      (s->T)(ed->node2 - 1) = BCvals(bcno,0);
-      (s->T)(ed->node3 - 1) = BCvals(bcno,0);
+      (sf->P)(ed->node1 - 1) = BCvals(bcno,0);
+      (sf->P)(ed->node2 - 1) = BCvals(bcno,0);
+      (sf->P)(ed->node3 - 1) = BCvals(bcno,0);
     }
 
   } // End of loop over boundary edges
@@ -346,8 +345,8 @@ void Fluid::CompDomIntegrals() {
     // Loop over nodes in that element
     for (int i = 0; i < enode; i++) {
       Gnode = ENC(eid,i+1); // Global node corresponding to (i+1)th local node
-      Ecoor(i,0) = s->Nodes[Gnode]->x; // X-coordinate at that node
-      Ecoor(i,1) = s->Nodes[Gnode]->y; // Y-coordinate at that node
+      Ecoor(i,0) = sf->Nodes[Gnode]->x; // X-coordinate at that node
+      Ecoor(i,1) = sf->Nodes[Gnode]->y; // Y-coordinate at that node
       Te(i) = (s->T)(Gnode - 1); // Temperature at that node at timestep n
       Te_old(i) = (s->Told)(Gnode - 1); // Temperature at timestep (n-1)
     }
@@ -541,7 +540,7 @@ void Fluid::ApplyBC() {
   // Loop over boundary edges - Apply NBCs first
   for (int eid = 0; eid < nbedge; eid++) {
 
-    ed = s->BEdges[eid+1];
+    ed = sf->BEdges[eid+1];
     bcno = -1;
     // Find the b.c. no: corresponding to the edge's marker (Default -1)
     for (int i = 0; i < nbc; i++) {
@@ -563,7 +562,7 @@ void Fluid::ApplyBC() {
   // // Loop over boundary edges - Apply DBCs finally
   // for (int eid = 0; eid < nbedge; eid++) {
 
-  //   ed = s->BEdges[eid+1];
+  //   ed = sf->BEdges[eid+1];
   //   bcno = -1;
   //   // Find the b.c. no: corresponding to the edge's marker (Default -1)
   //   for (int i = 0; i < nbc; i++) {
@@ -594,8 +593,8 @@ void Fluid::ApplyNBC(int bcno, fem::FEM_Edge *ed) {
   // Find the x & y coordinates of each node
   for (int i = 0; i < enode; i++) {
     Gnode = ENC(ed->eno-1, i+1); // Global node corr. to (i+1)th local node
-    Ecoor(i,0) = s->Nodes[Gnode]->x;
-    Ecoor(i,1) = s->Nodes[Gnode]->y;
+    Ecoor(i,0) = sf->Nodes[Gnode]->x;
+    Ecoor(i,1) = sf->Nodes[Gnode]->y;
   }
 
   // Compute components of normal vector
@@ -665,7 +664,7 @@ void Fluid::ApplyDBC(int nid) {
 void Fluid::UpdateGlobalPressure() {
   for (int i = 0; i < nnode; i++)
     if (L2G(i) > 0)
-      (s->T)(i) += dU(L2G(i) - 1);
+      (sf->P)(i) += dU(L2G(i) - 1);
 }
 //------------------------------------------------------------------------------
 void Fluid::PrintResults() {
@@ -675,10 +674,10 @@ void Fluid::PrintResults() {
 
   fp = fopen("postproc/temp.dat","w");
   for (int i = 0; i<nnode; i++) {
-    pp = s->Nodes[i+1];
+    pp = sf->Nodes[i+1];
     xval = pp->x + (s->U)(i);
-    yval = pp->y + (s->V)(i);
-    fprintf(fp,"%.14lf  %.14lf %.14lf \n", xval, yval, (s->T)(i));
+    yval = pp->y;
+    fprintf(fp,"%.14lf  %.14lf %.14lf \n", xval, yval, (sf->P)(i));
   }
   fclose(fp);
 }

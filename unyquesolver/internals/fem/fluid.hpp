@@ -49,7 +49,7 @@ public:
 
   // Preparation of global matrices and solving
   void SolveDynamic(double tn, double dtn);
-  void CompGapHeight();
+  void MapPhysicalToFluid();
   void ApplyInhomogeneousDBC();
   void CompDomIntegrals();
   void CompN(double s, double t, unyque::DVector &N, unyque::DMatrix &dN);
