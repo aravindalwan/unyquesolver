@@ -256,32 +256,48 @@ void Fluid::MapDOFs() {
 }
 //------------------------------------------------------------------------------
 void Fluid::SolveDynamic(double tn, double dtn) {
+
   int iter = 0;
   double err = 1.0, eps = 1e-10;
   t = tn; dt = dtn;
 
-  // Store current temperature as the temperature at the prev timestep, Told
-  for (int i = 0; i < nnode; i++)
-    (s->Told)(i) = (s->T)(i);
+  // Compute gap height at every node in the fluid domain
+  CompGapHeight();
 
-  // Solve for the temperature at the end of new timestep
-  ApplyInhomogeneousDBC();
-  do {
-    K.resize(ndof,ndof);
-    RHS = unyque::DVector_zero(ndof);
-    dU = unyque::DVector_zero(ndof);
-    CompDomIntegrals();
-    ApplyBC();
-    dU = unyque::umfpackSolve(K, RHS);
-    err = ublas::norm_inf(dU);
-    UpdateGlobalPressure();
-    iter++;
-    //if (c->DEBUG) cout<<"iteration: "<<iter<<"  Error: "<<err<<endl;
-  } while (err > eps);
-  if (c->DEBUG) PrintResults();
-  if (c->DEBUG)
-    cout<<"No. of steps: "<<iter<<"   Max. change in temperature: "<<
-      ublas::norm_inf((s->T) - (s->Told))<<endl;
+  // // Store current pressure as the pressure at the prev timestep, Pold
+  // for (int i = 0; i < nnode; i++)
+  //   (sf->Pold)(i) = (sf->P)(i);
+
+  // // Solve for the pressure at the end of new timestep
+  // ApplyInhomogeneousDBC();
+  // do {
+  //   K.resize(ndof,ndof);
+  //   RHS = unyque::DVector_zero(ndof);
+  //   dU = unyque::DVector_zero(ndof);
+  //   CompDomIntegrals();
+  //   ApplyBC();
+  //   dU = unyque::umfpackSolve(K, RHS);
+  //   err = ublas::norm_inf(dU);
+  //   UpdateGlobalPressure();
+  //   iter++;
+  //   //if (c->DEBUG) cout<<"iteration: "<<iter<<"  Error: "<<err<<endl;
+  // } while (err > eps);
+  // if (c->DEBUG) PrintResults();
+  // if (c->DEBUG)
+  //   cout<<"No. of steps: "<<iter<<"   Max. change in pressure: "<<
+  //     ublas::norm_inf((s->P) - (s->Pold))<<endl;
+
+}
+//------------------------------------------------------------------------------
+void Fluid::CompGapHeight() {
+
+  int nMEdge, nFEdge, bcno;
+  fem::FEM_Edge *ed;
+
+  movingEdge = 1; fixedEdge = 7;
+
+  fill((sf->H).begin(), (sf->H).end(), 2 + 0.2*cos(2*atan2(1,1)*10*t));
+
 }
 //------------------------------------------------------------------------------
 void Fluid::ApplyInhomogeneousDBC() {
@@ -668,6 +684,6 @@ void Fluid::PrintResults() {
 }
 //------------------------------------------------------------------------------
 double Fluid::MaxAbsPressure() {
-  return ublas::norm_inf(s->T);
+  return ublas::norm_inf(sf->H);
 }
 //------------------------------------------------------------------------------

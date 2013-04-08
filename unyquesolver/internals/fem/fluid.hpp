@@ -29,6 +29,7 @@ public:
 
   // Material properties
   double Eta;
+  int movingEdge, fixedEdge; // IDs of moving and fixed edges in physical domain
   void ReadFluid(char *filename);
 
   // Numerical integration
@@ -48,6 +49,7 @@ public:
 
   // Preparation of global matrices and solving
   void SolveDynamic(double tn, double dtn);
+  void CompGapHeight();
   void ApplyInhomogeneousDBC();
   void CompDomIntegrals();
   void CompN(double s, double t, unyque::DVector &N, unyque::DMatrix &dN);
