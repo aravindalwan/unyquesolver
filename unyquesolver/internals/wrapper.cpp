@@ -14,6 +14,9 @@ BOOST_PYTHON_MODULE(_internals)
     .add_property("physical_domain",
 		  make_getter(&fem::Solver::s,
 			      return_value_policy<reference_existing_object>()))
+    .add_property("fluid_domain",
+		  make_getter(&fem::Solver::sf,
+			      return_value_policy<reference_existing_object>()))
     .def("InitFluid", &fem::Solver::InitFluid)
     .def("Init", &fem::Solver::Init)
     .def("Solve", &fem::Solver::Solve)
@@ -70,5 +73,13 @@ BOOST_PYTHON_MODULE(_internals)
     .def(pyublas::by_value_ro_member("BPhi", &fem::FEM_PhysicalDomain::BPhi))
     .def(pyublas::by_value_ro_member("BdPhidn", &fem::FEM_PhysicalDomain::BdPhidn))
     .def(pyublas::by_value_ro_member("SCharge", &fem::FEM_PhysicalDomain::SCharge))
+    ;
+
+  class_<fem::FEM_FluidDomain>("FluidDomain")
+    .def(pyublas::by_value_ro_member("P", &fem::FEM_FluidDomain::P))
+    .def(pyublas::by_value_ro_member("Pold", &fem::FEM_FluidDomain::Pold))
+    .def(pyublas::by_value_ro_member("U", &fem::FEM_FluidDomain::U))
+    .def(pyublas::by_value_ro_member("H", &fem::FEM_FluidDomain::H))
+    .def(pyublas::by_value_ro_member("Hold", &fem::FEM_FluidDomain::Hold))
     ;
 }

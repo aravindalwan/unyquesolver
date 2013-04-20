@@ -112,7 +112,7 @@ namespace fem {
     pyublas::numpy_vector<double> U;
 
     // Gap height
-    pyublas::numpy_vector<double> H;
+    pyublas::numpy_vector<double> H, Hold;
 
   public:
     FEM_FluidDomain();
