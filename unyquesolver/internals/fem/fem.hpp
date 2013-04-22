@@ -78,7 +78,10 @@ namespace fem {
   class FEM_PhysicalDomain: public FEM_Domain {
   public:
     // Mechanical displacements
-    pyublas::numpy_vector<double> U, V;
+    pyublas::numpy_vector<double> U, V, Uold, Vold;
+
+    // Mechanical velocity and acceleration
+    pyublas::numpy_vector<double> Ud, Vd, Udd, Vdd, Udold, Vdold, Uddold, Vddold;
 
     // Temperature
     pyublas::numpy_vector<double> T, Told;

@@ -118,6 +118,11 @@ fem::FEM_PhysicalDomain::FEM_PhysicalDomain() : fem::FEM_Domain() {
 void fem::FEM_PhysicalDomain::InitDOFs() {
 
   U = unyque::DVector_zero(nnode); V = unyque::DVector_zero(nnode);
+  Uold = unyque::DVector_zero(nnode); Vold = unyque::DVector_zero(nnode);
+  Ud = unyque::DVector_zero(nnode); Vd = unyque::DVector_zero(nnode);
+  Udold = unyque::DVector_zero(nnode); Vdold = unyque::DVector_zero(nnode);
+  Udd = unyque::DVector_zero(nnode); Vdd = unyque::DVector_zero(nnode);
+  Uddold = unyque::DVector_zero(nnode); Vddold = unyque::DVector_zero(nnode);
 
   T = unyque::DVector_scalar(nnode, 300.0);
   Told = unyque::DVector_scalar(nnode, 300.0);
