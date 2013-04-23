@@ -175,10 +175,24 @@ bp::object fem::Solver::Solve(bp::list params) {
 //------------------------------------------------------------------------------
 bp::object fem::Solver::NLMechanics() {
 
-  // Solve the static nonlinear elasticity problem
-  nelast->SolveStatic();
+  bp::list rvalue;
 
-  return bp::object(nelast->MaxAbsDisp(-1));
+  // // Solve the static nonlinear elasticity problem
+  // nelast->SolveStatic();
+
+  //  return bp::object(nelast->MaxAbsDisp(-1));
+
+  double t_start = 0.0, t_end = 1.0, dt = 0.01, t;
+
+  t = t_start;
+  while (t <= t_end) {
+
+    nelast->SolveDynamic(t,dt);
+    rvalue.append(bp::make_tuple(t, nelast->MaxAbsDisp(-1)));
+    t = t + dt;
+  }
+
+  return rvalue;
 
 }
 //------------------------------------------------------------------------------
