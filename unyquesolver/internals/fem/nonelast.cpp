@@ -14,6 +14,8 @@ NonElast::NonElast(fem::FEM_PhysicalDomain *is, FEM_Common *ic) {
 }
 //------------------------------------------------------------------------------
 void NonElast::Init() {
+  char filename[100];
+
   nelem = s->nelem;
   nnode = s->nnode; nbnode = s->nbnode;
   nedge = s->nedge; nbedge = s->nbedge;
@@ -23,6 +25,7 @@ void NonElast::Init() {
   // Initialize and set the integration points and weights
   Init_GIntegration();
 
+  t = 0; dt = 0;
   D = unyque::DMatrix_zero(3,3);
   BL = unyque::DMatrix_zero(3,2*enode); BNL = unyque::DMatrix_zero(4,2*enode);
   BR0 = unyque::DMatrix_zero(2,2*enode); BR1 = unyque::DMatrix_zero(2,2*enode);
@@ -31,7 +34,6 @@ void NonElast::Init() {
   dp = unyque::DMatrix_zero(2, enode);
   hatSvec = unyque::DVector_zero(3);
 
-  char filename[100];
   sprintf(filename,"./conf/mechanical.conf");
   ReadNonelast(filename);
   SetD();
@@ -268,6 +270,38 @@ void NonElast::SolveStatic() {
   if (c->DEBUG) PrintResults();
 }
 //------------------------------------------------------------------------------
+void NonElast::SolveDynamic(double tn, double dtn) {
+  int iter = 0;
+  double err, eps = 1e-10;
+  t = tn, dt = dtn;
+
+  // Store values from previous time step
+  for (int i = 0; i < nnode; i++) {
+    (s->Uold)(i) = (s->U)(i);
+    (s->Vold)(i) = (s->V)(i);
+    (s->Udold)(i) = (s->Ud)(i);
+    (s->Vdold)(i) = (s->Vd)(i);
+    (s->Uddold)(i) = (s->Udd)(i);
+    (s->Vddold)(i) = (s->Vdd)(i);
+  }
+
+  ApplyInhomogeneousDBC();
+  do {
+    K.resize(2*ndof,2*ndof);
+    RHS = unyque::DVector_zero(2*ndof);
+    dU = unyque::DVector_zero(2*ndof);
+    CompK();
+    ApplyBC();
+    dU = unyque::umfpackSolve(K, RHS);
+    err = ublas::norm_inf(dU);
+    ConstructGlobalU();
+    iter++;
+    if (c->DEBUG) cout<<"iteration: "<<iter<<"  Error: "<<err<<endl;
+  } while (err > eps);
+  ConstructGlobalUDyn();
+  if (c->DEBUG) PrintResults();
+}
+//------------------------------------------------------------------------------
 void NonElast::ApplyInhomogeneousDBC() {
 
   int bcno;
@@ -303,10 +337,11 @@ void NonElast::CompK() {
   int Gnode, iglobal, jglobal;
   double si, ti;
   unyque::DMatrix Ke, Ktemp, Ue, Ecoor, dN;
-  unyque::DVector RHSe, N;
+  unyque::DVector Udde, RHSe, N;
 
   Ecoor = unyque::DMatrix_zero(enode,2);
   Ue = unyque::DMatrix_zero(enode, 2);
+  Udde = unyque::DVector_zero(2*enode);
   N = unyque::DVector_zero(enode);
   dN = unyque::DMatrix_zero(2, enode);
 
@@ -319,6 +354,12 @@ void NonElast::CompK() {
       Ue(i, 1) = (s->V)(Gnode-1);
       Ecoor(i,0) = s->Nodes[Gnode]->x;
       Ecoor(i,1) = s->Nodes[Gnode]->y;
+      if (dt > 0) {
+	Udde(2*i) = (s->Uddold)(Gnode-1) - 4./dt*(s->Udold)(Gnode-1) -
+	  4./(dt*dt)*((s->Uold)(Gnode-1)+(s->U)(Gnode-1));
+	Udde(2*i+1) = (s->Vddold)(Gnode-1) - 4./dt*(s->Vdold)(Gnode-1) -
+	  4./(dt*dt)*((s->Vold)(Gnode-1)+(s->V)(Gnode-1));
+      }
     }
 
     // Loop over the Gauss points
@@ -347,6 +388,15 @@ void NonElast::CompK() {
 
       // Compute [BL]'hatSvec part of the RHS
       RHSe += -ublas::prod(hatSvec, BL)*Gw(ip)*detJ;
+
+      if (dt > 0) {
+	CompF(eid);
+	// Compute 4*rho*[N]'[N]*(1/dt^2)
+	Ktemp = ublas::outer_prod(N,N);
+	Ke += Ktemp*4*RHO/(dt*dt)*detF*Gw(ip)*detJ;
+	// Compute rho*[N]'[N]*Udd
+	RHSe += ublas::prod(Ktemp,Udde)*RHO*detF*Gw(ip)*detJ;
+      }
 
     } // End of loop over integration points
 
@@ -833,6 +883,21 @@ void NonElast::ConstructGlobalU() {
     if (L2G(i) > 0) {
       (s->U)(i) += dU(L2G(i) - 1);
       (s->V)(i) += dU(L2G(i));
+    }
+  }
+}
+//------------------------------------------------------------------------------
+void NonElast::ConstructGlobalUDyn() {
+  for (int i = 0; i < nnode; i++) {
+    if (L2G(i) > 0) {
+      (s->Ud)(i) = -(s->Udold)(i) + dt*(s->Uddold)(i) +
+	2.0/dt*((s->U)(i)-(s->Uold)(i));
+      (s->Vd)(i) = -(s->Vdold)(i) + dt*(s->Vddold)(i) +
+	2.0/dt*((s->V)(i)-(s->Vold)(i));;
+      (s->Udd)(i) = (s->Uddold)(i) -
+	4.0/dt*((s->Udold)(i) + ((s->Uold)(i)-(s->U)(i))/dt);
+      (s->Vdd)(i) = (s->Vddold)(i) -
+	4.0/dt*((s->Vdold)(i) + ((s->Vold)(i)-(s->V)(i))/dt);
     }
   }
 }

@@ -14,6 +14,7 @@ public:
   unyque::SparseMatrix K;
   unyque::DVector RHS, dU;
   unyque::IMatrix ENC;
+  double t, dt;
 
   // Number of nodes, elements, boundary nodes, edges, boundary edges,
   // nodes in an element and boundary conditions
@@ -54,6 +55,7 @@ public:
 
   // Preperation of global matrices and solving
   void SolveStatic();
+  void SolveDynamic(double tn, double dtn);
   void ApplyInhomogeneousDBC();
   void CompK();
   void CompN(double s, double t, unyque::DVector &N, unyque::DMatrix &dN);
@@ -67,6 +69,7 @@ public:
   void CompBR(unyque::DVector &N, unyque::DVector nX);
   void ApplyDBC(int nid);
   void ConstructGlobalU();
+  void ConstructGlobalUDyn();
 
   // Post-processing
   void PrintResults();
