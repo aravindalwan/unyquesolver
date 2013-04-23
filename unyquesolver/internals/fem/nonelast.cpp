@@ -137,6 +137,8 @@ void NonElast::ReadNonelast(char *filename) {
 	fp >> ws >> EM;
       if (key.compare("POISSON") == 0)
 	fp >> ws >> MU;
+      if (key.compare("DENSITY") == 0)
+	fp >> ws >> RHO;
       if (key.compare("THERMOELASTICITY") == 0)
 	fp >> ws >> ithermoelasticity;
       if (key.compare("ELECTROSTATIC_FORCE") == 0)

@@ -31,7 +31,7 @@ public:
   double detF, detJ, slen, tlen, vlen, TEcoeff;
 
   // Material properties
-  double EM, MU, ALPHA, T_REF;
+  double EM, MU, RHO, ALPHA, T_REF;
   int iconstitutive, ithermoelasticity, ielecforce;
   unyque::DMatrix D;
   void ReadNonelast(char *filename);
