@@ -183,6 +183,10 @@ void Fluid::ReadFluid(char *filename) {
 	fp >> ws >> LAMBDA;
       if (key.compare("P_ATM") == 0)
 	fp >> ws >> P_ATM;
+      if (key.compare("FIXED_EDGE") == 0)
+	fp >> ws >> fixedEdge;
+      if (key.compare("MOVING_EDGE") == 0)
+	fp >> ws >> movingEdge;
       if (key.compare("NBC") == 0) {
 	fp >> ws >> nbc;
 	BCvals = unyque::DMatrix_zero(nbc,2);
@@ -301,8 +305,6 @@ void Fluid::MapPhysicalToFluid() {
   int nMEdge, nFEdge, bcno;
   fem::FEM_Edge *ed;
 
-  movingEdge = 1; fixedEdge = 7;
-
   fill((sf->H).begin(), (sf->H).end(), 2.0 - 0.2*sin(2*4*atan2(1,1)*1e6*t));
 
 }
@@ -395,15 +397,15 @@ void Fluid::CompDomIntegrals() {
       // 	     (1+6*KN)*pow(H,3)*P*BFFB)*detF*Gw(ip)*detJ;
       Ke += (ublas::outer_prod(12*ETA*N*(H/dt)/101325 +
       			       (1+6*KN)*pow(H,3)*ublas::prod(BFFB, Pe), N) +
-      	     (1+6*KN)*pow(H,3)*P*BFFB)*detF*Gw(ip)*detJ;
+      	     (1+6*KN)*pow(H,3)*(P+P_ATM)*BFFB)*detF*Gw(ip)*detJ;
 
       // Create the elemental vector RHSe
       // {12*ETA*(H*(P-Pold)/dt + Hd*P)*[N] + (1+6*KN)*H^3*P*[BFFB]*[Pe]}*detF
       // RHSe -= (12*ETA*N*(H*(P - Pold)/dt + Hd*P)/101325 +
       // 	       (1+6*KN)*pow(H,3)*(P*ublas::prod(BFFB, Pe))
       // 	       )*detF*Gw(ip)*detJ;
-      RHSe -= (12*ETA*N*(H*P - Hold*Pold)/dt/101325 +
-	       (1+6*KN)*pow(H,3)*(P*ublas::prod(BFFB, Pe))
+      RHSe -= (12*ETA*N*(H*(P+P_ATM) - Hold*(Pold+P_ATM))/dt/101325 +
+	       (1+6*KN)*pow(H,3)*((P+P_ATM)*ublas::prod(BFFB, Pe))
 	       )*detF*Gw(ip)*detJ;
 
     } // End of loop over integration points

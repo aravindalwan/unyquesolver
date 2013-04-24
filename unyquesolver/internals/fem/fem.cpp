@@ -141,8 +141,8 @@ fem::FEM_FluidDomain::FEM_FluidDomain() : fem::FEM_Domain() {
 //------------------------------------------------------------------------------
 void fem::FEM_FluidDomain::InitDOFs() {
 
-  P = unyque::DVector_scalar(nnode, 1.0);
-  Pold = unyque::DVector_scalar(nnode, 1.0);
+  P = unyque::DVector_zero(nnode);
+  Pold = unyque::DVector_zero(nnode);
 
   U = unyque::DVector_zero(nnode);
 
