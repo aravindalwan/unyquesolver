@@ -29,7 +29,7 @@ public:
 
   // Material properties
   double ETA, LAMBDA, P_ATM, KN;
-  int movingEdge, fixedEdge; // IDs of moving and fixed edges in physical domain
+  int MOVING_EDGE, FIXED_EDGE; // IDs of moving and fixed edges in physical domain
   void ReadFluid(char *filename);
 
   // Numerical integration

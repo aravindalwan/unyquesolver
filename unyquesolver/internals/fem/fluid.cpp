@@ -184,9 +184,9 @@ void Fluid::ReadFluid(char *filename) {
       if (key.compare("P_ATM") == 0)
 	fp >> ws >> P_ATM;
       if (key.compare("FIXED_EDGE") == 0)
-	fp >> ws >> fixedEdge;
+	fp >> ws >> FIXED_EDGE;
       if (key.compare("MOVING_EDGE") == 0)
-	fp >> ws >> movingEdge;
+	fp >> ws >> MOVING_EDGE;
       if (key.compare("NBC") == 0) {
 	fp >> ws >> nbc;
 	BCvals = unyque::DMatrix_zero(nbc,2);
@@ -302,10 +302,77 @@ void Fluid::SolveDynamic(double tn, double dtn) {
 //------------------------------------------------------------------------------
 void Fluid::MapPhysicalToFluid() {
 
-  int nMEdge, nFEdge, bcno;
   fem::FEM_Edge *ed;
+  unyque::DVector N, Quantity, yMoving, yFixed;
+  double x, x1, x2, x3;
 
-  fill((sf->H).begin(), (sf->H).end(), 2.0 - 0.2*sin(2*4*atan2(1,1)*1e6*t));
+  N = unyque::DVector_zero(3);
+  Quantity = unyque::DVector_zero(3);
+  yMoving = unyque::DVector_zero(nnode);
+  yFixed = unyque::DVector_zero(nnode);
+
+  for (int i = 0; i < nnode; i++) {
+    for (int eid = 0; eid < s->nbedge; eid++) {
+      ed = s->BEdges[eid+1];
+
+      if ((ed->bmarker == MOVING_EDGE) || (ed->bmarker == FIXED_EDGE)) {
+
+	// Store x-coordinates of current node and edge nodes
+	x = sf->Nodes[i+1]->x;
+	x1 = s->Nodes[ed->node1]->x;
+	x2 = s->Nodes[ed->node2]->x;
+	x3 = s->Nodes[ed->node3]->x;
+
+	// Compute basis functions
+	N(0) = (x - x2)*(x - x3)/(x1 - x2)/(x1 - x3);
+	N(1) = (x - x1)*(x - x3)/(x2 - x1)/(x2 - x3);
+	N(2) = (x - x1)*(x - x2)/(x3 - x1)/(x3 - x2);
+
+      }
+
+      // Check if edge has the same ID as MOVING_EDGE
+      if (ed->bmarker == MOVING_EDGE) {
+	if ((x - x1)*(x - x2) <= 0) { // If node belongs to this edge
+
+	  // Get y-position of edge nodes
+	  Quantity(0) = s->Nodes[ed->node1]->y + (s->V)(ed->node1-1);
+	  Quantity(1) = s->Nodes[ed->node2]->y + (s->V)(ed->node2-1);
+	  Quantity(2) = s->Nodes[ed->node3]->y + (s->V)(ed->node3-1);
+
+	  // Store y-position of edge at x-location corresponding to node
+	  yMoving(i) = ublas::inner_prod(N, Quantity);
+
+	  // Get x-displacement of edge nodes
+	  Quantity(0) = (s->U)(ed->node1-1);
+	  Quantity(1) = (s->U)(ed->node2-1);
+	  Quantity(2) = (s->U)(ed->node3-1);
+
+	  // Store x-diplacement of edge at x-location corresponding to node
+	  (sf->U)(i) = ublas::inner_prod(N, Quantity);
+
+	}
+      }
+
+      // Check if edge has the same ID as FIXED_EDGE
+      if (ed->bmarker == FIXED_EDGE) {
+	if ((x - x1)*(x - x2) <= 0) { // If node belongs to this edge
+
+	  // Get y-position of edge nodes
+	  Quantity(0) = s->Nodes[ed->node1]->y;
+	  Quantity(1) = s->Nodes[ed->node2]->y;
+	  Quantity(2) = s->Nodes[ed->node3]->y;
+
+	  // Store y-position of edge at x-location corresponding to node
+	  yFixed(i) = ublas::inner_prod(N, Quantity);
+
+	}
+      }
+
+    } // End loop over edges
+
+    (sf->H)(i) = abs(yMoving(i) - yFixed(i)); // Store gap height at this node
+
+  } // End loop over nodes
 
 }
 //------------------------------------------------------------------------------
