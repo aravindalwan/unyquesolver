@@ -463,13 +463,15 @@ bp::object fem::Solver::HybridETMDynamic() {
   oldU = unyque::DVector_zero(s->nnode); oldV = unyque::DVector_zero(s->nnode);
 
   // Solve the dynamic heat conduction problem
-  double t_start = 0.0, t_end = 1.0, dt = 0.01, t;
+  double t_start = 0.0, t_end = 1.0e-5, dt = 1e-8, t;
 
   t = t_start;
   while (t <= t_end) {
 
     fluid->SolveDynamic(t, dt);
-    rvalue.append(bp::make_tuple(t, fluid->MaxAbsPressure()));
+    rvalue.append(bp::make_tuple(t, fluid->Pressure()));
+    if (int((t - t_start)/dt) % 100 == 0)
+      cout << "Time: " << t << endl;
     t = t + dt;
 
   }

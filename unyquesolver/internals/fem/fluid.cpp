@@ -178,7 +178,11 @@ void Fluid::ReadFluid(char *filename) {
       fp >> key;
 
       if (key.compare("ETA") == 0)
-	fp >> ws >> Eta;
+	fp >> ws >> ETA;
+      if (key.compare("LAMBDA") == 0)
+	fp >> ws >> LAMBDA;
+      if (key.compare("P_ATM") == 0)
+	fp >> ws >> P_ATM;
       if (key.compare("NBC") == 0) {
 	fp >> ws >> nbc;
 	BCvals = unyque::DMatrix_zero(nbc,2);
@@ -261,11 +265,14 @@ void Fluid::SolveDynamic(double tn, double dtn) {
   double err = 1.0, eps = 1e-10;
   t = tn; dt = dtn;
 
-  // Map quantities from physical domain to fluid domain
-  MapPhysicalToFluid();
-
   // Store current pressure as the pressure at the prev timestep, Pold
   copy((sf->P).begin(), (sf->P).end(), (sf->Pold).begin());
+
+  // Store current gap height as the gap height at the prev timestep, Hold
+  copy((sf->H).begin(), (sf->H).end(), (sf->Hold).begin());
+
+  // Map quantities from physical domain to fluid domain
+  MapPhysicalToFluid();
 
   // Solve for the pressure at the end of new timestep
   ApplyInhomogeneousDBC();
@@ -273,18 +280,19 @@ void Fluid::SolveDynamic(double tn, double dtn) {
     K.resize(ndof,ndof);
     RHS = unyque::DVector_zero(ndof);
     dU = unyque::DVector_zero(ndof);
-    //  CompDomIntegrals();
-  //   ApplyBC();
-  //   dU = unyque::umfpackSolve(K, RHS);
+    CompDomIntegrals();
+    dU = unyque::umfpackSolve(K, RHS);
     err = ublas::norm_inf(dU);
-  //   UpdateGlobalPressure();
-  //   iter++;
-  //   //if (c->DEBUG) cout<<"iteration: "<<iter<<"  Error: "<<err<<endl;
-  } while (err > eps);
-  // if (c->DEBUG) PrintResults();
-  // if (c->DEBUG)
-  //   cout<<"No. of steps: "<<iter<<"   Max. change in pressure: "<<
-  //     ublas::norm_inf((s->P) - (s->Pold))<<endl;
+    UpdateGlobalPressure();
+    iter++;
+    if (c->DEBUG) cout<<"iteration: "<<iter<<"  Error: "<<err<<endl;
+  } while (err > eps && iter <= 25);
+  if (iter > 25)
+    cout << "Warning: Too many Newton-Raphson iterations" << endl;
+  if (c->DEBUG) PrintResults();
+  if (c->DEBUG)
+    cout<<"No. of steps: "<<iter<<"   Max. change in pressure: "<<
+      ublas::norm_inf((sf->P) - (sf->Pold))<<endl;
 
 }
 //------------------------------------------------------------------------------
@@ -295,7 +303,7 @@ void Fluid::MapPhysicalToFluid() {
 
   movingEdge = 1; fixedEdge = 7;
 
-  fill((sf->H).begin(), (sf->H).end(), 2 + 0.2*cos(2*4*atan2(1,1)*10*t));
+  fill((sf->H).begin(), (sf->H).end(), 2.0 - 0.2*sin(2*4*atan2(1,1)*1e6*t));
 
 }
 //------------------------------------------------------------------------------
@@ -329,13 +337,15 @@ void Fluid::ApplyInhomogeneousDBC() {
 void Fluid::CompDomIntegrals() {
 
   int Gnode, iglobal, jglobal;
-  double si, ti, T;
+  double si, ti, P, Pold, H, Hold;
   unyque::DMatrix Ecoor, dN, B, Finv, FB, BFFB, Ke;
-  unyque::DVector Te, Te_old, RHSe, N;
+  unyque::DVector Pe, Pe_old, He, He_old, RHSe, N;
 
   Ecoor = unyque::DMatrix_zero(enode,2);
-  Te = unyque::DVector_zero(enode);
-  Te_old = unyque::DVector_zero(enode);
+  Pe = unyque::DVector_zero(enode);
+  Pe_old = unyque::DVector_zero(enode);
+  He = unyque::DVector_zero(enode);
+  He_old = unyque::DVector_zero(enode);
   N = unyque::DVector_zero(enode);
   dN = unyque::DMatrix_zero(2, enode);
 
@@ -346,15 +356,18 @@ void Fluid::CompDomIntegrals() {
     for (int i = 0; i < enode; i++) {
       Gnode = ENC(eid,i+1); // Global node corresponding to (i+1)th local node
       Ecoor(i,0) = sf->Nodes[Gnode]->x; // X-coordinate at that node
-      Ecoor(i,1) = sf->Nodes[Gnode]->y; // Y-coordinate at that node
-      Te(i) = (s->T)(Gnode - 1); // Temperature at that node at timestep n
-      Te_old(i) = (s->Told)(Gnode - 1); // Temperature at timestep (n-1)
+      Ecoor(i,1) = sf->Nodes[Gnode]->y; // Z-coordinate at that node
+      Pe(i) = (sf->P)(Gnode - 1); // Pressure at that node at timestep n
+      Pe_old(i) = (sf->Pold)(Gnode - 1); // Pressure at timestep (n-1)
+      He(i) = (sf->H)(Gnode - 1); // Gap height at that node
+      He_old(i) = (sf->Hold)(Gnode - 1); // Gap height at timestep (n-1)
     }
 
     // Loop over the Gauss points
     Ke = unyque::DMatrix_zero(enode,enode);
     RHSe = unyque::DVector_zero(enode);
     for (int ip = 0; ip < Gnquad; ip++) {
+
       si = Gs(ip); ti = Gt(ip);
       CompN(si, ti, N, dN);
       B = CompJandB(dN, Ecoor);
@@ -366,51 +379,32 @@ void Fluid::CompDomIntegrals() {
       // Compute the value of [B]'[Finv][Finv]'[B] at integration point ip
       BFFB = ublas::prod(ublas::trans(FB), FB);
 
-      // Compute the temperature at the current integration point
-      T = ublas::inner_prod(N, Te);
+      // Compute the pressure and gap height at the current integration point
+      P = ublas::inner_prod(N, Pe);
+      Pold = ublas::inner_prod(N, Pe_old);
+      H = ublas::inner_prod(N, He);
+      Hold = ublas::inner_prod(N, He_old);
 
-      // // Evaluate the thermal conductivity & its gradient at this temperature
-      // TC = c->functions->Eval_TC(T);
-      // dTCdT = c->functions->Eval_dTCdT(T);
+      // Compute the Knudsen number
+      KN = LAMBDA/H/P_ATM;
 
-      // // Compute the value of integrand: [BFFB](dTCdT*[Te][N] + TC*Inxn)*detF
-      // Ke += 0.5*(ublas::outer_prod(ublas::prod(BFFB, Te)*dTCdT +
-      // 				   N*(Ht+Hb)*1e-6/Thickness, N) + TC*BFFB)*
-      // 	detF*Gw(ip)*detJ;
+      // Compute the element matrix Ke
+      // {12*ETA*(H/dt + Hd)*[NN] + (1+6*KN)*H^3*[BFFB]*([Pe][N]+P*Inxn)}*detF
+      // Ke += (ublas::outer_prod(12*ETA*N*(H/dt + Hd)/101325 +
+      // 			       (1+6*KN)*pow(H,3)*ublas::prod(BFFB, Pe), N) +
+      // 	     (1+6*KN)*pow(H,3)*P*BFFB)*detF*Gw(ip)*detJ;
+      Ke += (ublas::outer_prod(12*ETA*N*(H/dt)/101325 +
+      			       (1+6*KN)*pow(H,3)*ublas::prod(BFFB, Pe), N) +
+      	     (1+6*KN)*pow(H,3)*P*BFFB)*detF*Gw(ip)*detJ;
 
-      // // Compute the heat source term
-      // if (JouleHeating > 0)
-      // 	Q = Qext + CompQjoule(eid, B, T);
-      // else
-      // 	Q = Qext;
-
-      // // Create the elemental vector RHSe
-      // RHSe += 0.5*((Q*1e-12 - (Ht + Hb)*(T - Tinf)*1e-6/Thickness)*N -
-      // 		   TC*ublas::prod(BFFB, Te))*detF*Gw(ip)*detJ;
-
-      if (dt > 0) { // Dynamic analysis
-
-	// // Add the contribution of intertial term to residual using new temp
-	// for (int i = 0;i<enode;i++) {
-	//   RHSe(i) -= (1/dt)*N(i)*RhoCp*T*detF*Gw(ip)*detJ;
-	// }
-
-	// Compute the old temperature at the current integration point
-	T = ublas::inner_prod(N, Te_old);
-
-	// // Evaluate the thermal conductivity & its gradient at this temperature
-	// TC = c->functions->Eval_TC(T);
-	// dTCdT = c->functions->Eval_dTCdT(T);
-
-	// // Compute the mass matrix integrand
-	// Ke += (1/dt)*RhoCp*ublas::outer_prod(N, N)*detF*Gw(ip)*detJ;
-
-	// // Create the elemental vector RHSe
-	// RHSe += (0.5*((Q*1e-12 - (Ht + Hb)*(T - Tinf)*1e-6/Thickness)*N -
-	// 	      TC*ublas::prod(BFFB, Te_old)) + (1/dt)*RhoCp*T*N)*
-	//   detF*Gw(ip)*detJ;
-
-      }
+      // Create the elemental vector RHSe
+      // {12*ETA*(H*(P-Pold)/dt + Hd*P)*[N] + (1+6*KN)*H^3*P*[BFFB]*[Pe]}*detF
+      // RHSe -= (12*ETA*N*(H*(P - Pold)/dt + Hd*P)/101325 +
+      // 	       (1+6*KN)*pow(H,3)*(P*ublas::prod(BFFB, Pe))
+      // 	       )*detF*Gw(ip)*detJ;
+      RHSe -= (12*ETA*N*(H*P - Hold*Pold)/dt/101325 +
+	       (1+6*KN)*pow(H,3)*(P*ublas::prod(BFFB, Pe))
+	       )*detF*Gw(ip)*detJ;
 
     } // End of loop over integration points
 
@@ -511,10 +505,11 @@ unyque::DMatrix Fluid::CompF(int eid, unyque::DMatrix &B) {
   F = unyque::DMatrix_zero(2,2);
   Finv = unyque::DMatrix(2,2);
 
+  // Get displacement at nodes. Domain only deforms along x, not z.
   for (int i = 0; i < enode; i++) {
     Gnode = ENC(eid,i+1); // Global node corresponding to (i+1)th local node
-    Ue(i, 0) = (s->U)(Gnode-1);
-    Ue(i, 1) = (s->V)(Gnode-1);
+    Ue(i, 0) = (sf->U)(Gnode-1);
+    Ue(i, 1) = 0;
   }
 
   F = unyque::DMatrix_identity(2) + ublas::trans(ublas::prod(B, Ue));
@@ -533,134 +528,6 @@ unyque::DMatrix Fluid::CompF(int eid, unyque::DMatrix &B) {
 
 }
 //------------------------------------------------------------------------------
-void Fluid::ApplyBC() {
-  int bcno;
-  fem::FEM_Edge *ed;
-
-  // Loop over boundary edges - Apply NBCs first
-  for (int eid = 0; eid < nbedge; eid++) {
-
-    ed = sf->BEdges[eid+1];
-    bcno = -1;
-    // Find the b.c. no: corresponding to the edge's marker (Default -1)
-    for (int i = 0; i < nbc; i++) {
-      if (BCtype(i,0) == ed->bmarker) {bcno = i; break;}
-    }
-
-    // Apply the appropriate type of b.c. corresponding to that number
-    // or do nothing by default
-    switch (BCtype(bcno,1)) {
-    case 2:
-      ApplyNBC(bcno, ed);
-      break;
-    default :
-      break;
-    }
-
-  } // End of loop over boundary edges
-
-  // // Loop over boundary edges - Apply DBCs finally
-  // for (int eid = 0; eid < nbedge; eid++) {
-
-  //   ed = sf->BEdges[eid+1];
-  //   bcno = -1;
-  //   // Find the b.c. no: corresponding to the edge's marker (Default -1)
-  //   for (int i = 0; i < nbc; i++) {
-  //     if (BCtype(i,0) == ed->bmarker) {bcno = i; break;}
-  //   }
-
-  //   // Check if b.c. type is 1 and apply DBC if it is
-  //   if ((bcno >= 0) && (BCtype(bcno,1) == 1)) {
-  //     ApplyDBC(ed->node1 - 1);
-  //     ApplyDBC(ed->node2 - 1);
-  //     ApplyDBC(ed->node3 - 1);
-  //   }
-
-  // } // End of loop over boundary edges
-}
-//------------------------------------------------------------------------------
-void Fluid::ApplyNBC(int bcno, fem::FEM_Edge *ed) {
-
-  int Gnode, startip, iglobal;
-  double si, ti, detJ1D = 0, FinvTN;
-  unyque::DMatrix Ecoor, dN, B, Finv;
-  unyque::DVector N, n(2);
-
-  Ecoor = unyque::DMatrix_zero(enode,2);
-  N = unyque::DVector_zero(enode);
-  dN = unyque::DMatrix_zero(2, enode);
-
-  // Find the x & y coordinates of each node
-  for (int i = 0; i < enode; i++) {
-    Gnode = ENC(ed->eno-1, i+1); // Global node corr. to (i+1)th local node
-    Ecoor(i,0) = sf->Nodes[Gnode]->x;
-    Ecoor(i,1) = sf->Nodes[Gnode]->y;
-  }
-
-  // Compute components of normal vector
-  n(0) = cos(ed->normal);
-  n(1) = sin(ed->normal);
-
-  startip = Genquad*(ed->eid);
-  // Loop over the Gauss points for this edge
-  for (int ip = startip; ip < (startip + Genquad); ip++) {
-
-    // Compute shape functions and lengths of edges
-    si = Ges(ip); ti = Get(ip);
-    CompN(si, ti, N, dN);
-    B = CompJandB(dN, Ecoor);
-    Finv = CompF(ed->eno-1, B);
-
-    // Compute |[Finv]'*N| where N is outward normal in undeformed configuration
-    FinvTN = abs(ublas::norm_2(ublas::prod(ublas::trans(Finv), n)));
-
-    // Find the length of this edge
-    switch (ed->eid) {
-    case 0:
-      detJ1D = slen;
-      break;
-    case 1:
-      detJ1D = vlen;
-      break;
-    case 2:
-      detJ1D = tlen;
-      break;
-    default:
-      if (c->DEBUG) cout<<"Invalid edge ID"<<endl;
-    }
-
-    // Create the elemental vector RHSe
-    for (int i = 0;i<enode;i++) {
-      iglobal = L2G(ENC(ed->eno-1, i+1) - 1);
-      if (iglobal > 0) {
-	RHS(iglobal-1) -= 0.5*N(i)*BCvals(bcno,0)*1e-6*FinvTN*detF*Gew(ip)*detJ1D;
-	if (dt > 0) { // Dynamic analysis
-	  RHS(iglobal-1) -= 0.5*N(i)*BCvals(bcno,0)*1e-6*FinvTN*
-	    detF*Gew(ip)*detJ1D;
-	}
-      }
-    }
-  }
-
-}
-//------------------------------------------------------------------------------
-void Fluid::ApplyDBC(int nid) {
-
-  // Zero out the row 'nid' and column 'nid' in K corresponding to the node
-  for (int i = 0; i<nnode; i++) {
-    if (K(nid, i) != 0.0)
-      K.erase_element(nid, i);
-    if (K(i, nid) != 0.0)
-      K.erase_element(i, nid);
-  }
-
-  // Set K(nid,nid) as one
-  K(nid,nid) = 1.0;
-  // Set RHS(nid) as zero
-  RHS(nid) = 0.0;
-
-}
-//------------------------------------------------------------------------------
 void Fluid::UpdateGlobalPressure() {
   for (int i = 0; i < nnode; i++)
     if (L2G(i) > 0)
@@ -672,17 +539,19 @@ void Fluid::PrintResults() {
   fem::FEM_Point *pp;
   double xval, yval;
 
-  fp = fopen("postproc/temp.dat","w");
+  fp = fopen("postproc/pressure.dat","w");
   for (int i = 0; i<nnode; i++) {
     pp = sf->Nodes[i+1];
-    xval = pp->x + (s->U)(i);
+    xval = pp->x + (sf->U)(i);
     yval = pp->y;
     fprintf(fp,"%.14lf  %.14lf %.14lf \n", xval, yval, (sf->P)(i));
   }
   fclose(fp);
 }
 //------------------------------------------------------------------------------
-double Fluid::MaxAbsPressure() {
-  return ublas::norm_inf(sf->H);
+pyublas::numpy_vector<double> Fluid::Pressure() {
+  pyublas::numpy_vector<double> rval((sf->P).size());
+  rval.assign(sf->P);
+  return rval;
 }
 //------------------------------------------------------------------------------

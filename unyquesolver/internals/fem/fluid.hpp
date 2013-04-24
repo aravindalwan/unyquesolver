@@ -28,7 +28,7 @@ public:
   double detF, detJ, slen, tlen, vlen;
 
   // Material properties
-  double Eta;
+  double ETA, LAMBDA, P_ATM, KN;
   int movingEdge, fixedEdge; // IDs of moving and fixed edges in physical domain
   void ReadFluid(char *filename);
 
@@ -55,11 +55,8 @@ public:
   void CompN(double s, double t, unyque::DVector &N, unyque::DMatrix &dN);
   unyque::DMatrix CompJandB(unyque::DMatrix &dN, unyque::DMatrix &Ecoor);
   unyque::DMatrix CompF(int eid, unyque::DMatrix &B);
-  void ApplyBC();
-  void ApplyNBC(int bcno, fem::FEM_Edge *ed);
-  void ApplyDBC(int nid);
   void UpdateGlobalPressure();
   void PrintResults();
-  double MaxAbsPressure();
+  pyublas::numpy_vector<double> Pressure();
 };
 #endif
