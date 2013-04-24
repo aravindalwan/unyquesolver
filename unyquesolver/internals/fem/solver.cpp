@@ -468,7 +468,10 @@ bp::object fem::Solver::HybridETMDynamic() {
   t = t_start;
   while (t <= t_end) {
 
-    fill((s->V).begin(), (s->V).end(), -0.2*sin(2*4*atan2(1,1)*1e6*t));
+    nelast->BCtype(1,1) = 1;
+    nelast->BCvals(1,1) = -0.2*sin(2*4*atan2(1,1)*1e6*t);
+    nelast->BCvals(3,1) = -0.2*sin(2*4*atan2(1,1)*1e6*t);
+    nelast->SolveStatic();
     fluid->SolveDynamic(t, dt);
     rvalue.append(bp::make_tuple(t, fluid->Pressure()));
     if (int((t - t_start)/dt) % 100 == 0)

@@ -358,9 +358,9 @@ void Fluid::MapPhysicalToFluid() {
 	if ((x - x1)*(x - x2) <= 0) { // If node belongs to this edge
 
 	  // Get y-position of edge nodes
-	  Quantity(0) = s->Nodes[ed->node1]->y;
-	  Quantity(1) = s->Nodes[ed->node2]->y;
-	  Quantity(2) = s->Nodes[ed->node3]->y;
+	  Quantity(0) = s->Nodes[ed->node1]->y + (s->V)(ed->node1-1);
+	  Quantity(1) = s->Nodes[ed->node2]->y + (s->V)(ed->node2-1);
+	  Quantity(2) = s->Nodes[ed->node3]->y + (s->V)(ed->node3-1);
 
 	  // Store y-position of edge at x-location corresponding to node
 	  yFixed(i) = ublas::inner_prod(N, Quantity);
