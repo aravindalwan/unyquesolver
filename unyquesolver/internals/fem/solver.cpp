@@ -182,14 +182,18 @@ bp::object fem::Solver::NLMechanics() {
 
   //  return bp::object(nelast->MaxAbsDisp(-1));
 
-  double t_start = 0.0, t_end = 1.0, dt = 0.01, t;
+  double t_start = 0.0, t_end = 1.0e-5, dt = 1e-7, t;
 
   t = t_start;
+
   while (t <= t_end) {
 
     nelast->SolveDynamic(t,dt);
     rvalue.append(bp::make_tuple(t, nelast->MaxAbsDisp(-1)));
+    if (int((t - t_start)/dt) % 10 == 0)
+      cout << "Time: " << t << endl;
     t = t + dt;
+
   }
 
   return rvalue;

@@ -355,10 +355,10 @@ void NonElast::CompK() {
       Ecoor(i,0) = s->Nodes[Gnode]->x;
       Ecoor(i,1) = s->Nodes[Gnode]->y;
       if (dt > 0) {
-	Udde(2*i) = (s->Uddold)(Gnode-1) - 4./dt*(s->Udold)(Gnode-1) -
-	  4./(dt*dt)*((s->Uold)(Gnode-1)+(s->U)(Gnode-1));
-	Udde(2*i+1) = (s->Vddold)(Gnode-1) - 4./dt*(s->Vdold)(Gnode-1) -
-	  4./(dt*dt)*((s->Vold)(Gnode-1)+(s->V)(Gnode-1));
+	Udde(2*i) = -(s->Uddold)(Gnode-1) - 4./dt*(s->Udold)(Gnode-1) -
+	  4./(dt*dt)*((s->Uold)(Gnode-1) - (s->U)(Gnode-1));
+	Udde(2*i+1) = -(s->Vddold)(Gnode-1) - 4./dt*(s->Vdold)(Gnode-1) -
+	  4./(dt*dt)*((s->Vold)(Gnode-1) - (s->V)(Gnode-1));
       }
     }
 
@@ -391,11 +391,17 @@ void NonElast::CompK() {
 
       if (dt > 0) {
 	CompF(eid);
+	Ktemp = unyque::DMatrix_zero(2*enode, 2*enode);
+	for (int i = 0; i < enode; i++) {
+	  for (int j = 0; j < enode; j++) {
+	    Ktemp(2*i, 2*j) = N(i)*N(j);
+	    Ktemp(2*i + 1, 2*j + 1) = N(i)*N(j);
+	  }
+	}
 	// Compute 4*rho*[N]'[N]*(1/dt^2)
-	Ktemp = ublas::outer_prod(N,N);
-	Ke += Ktemp*4*RHO/(dt*dt)*detF*Gw(ip)*detJ;
+	Ke += 1e-24*Ktemp*4*RHO/(dt*dt)*detF*Gw(ip)*detJ;
 	// Compute rho*[N]'[N]*Udd
-	RHSe += ublas::prod(Ktemp,Udde)*RHO*detF*Gw(ip)*detJ;
+	RHSe -= 1e-24*ublas::prod(Ktemp,Udde)*RHO*detF*Gw(ip)*detJ;
       }
 
     } // End of loop over integration points
@@ -890,14 +896,16 @@ void NonElast::ConstructGlobalU() {
 void NonElast::ConstructGlobalUDyn() {
   for (int i = 0; i < nnode; i++) {
     if (L2G(i) > 0) {
-      (s->Ud)(i) = -(s->Udold)(i) + dt*(s->Uddold)(i) +
-	2.0/dt*((s->U)(i)-(s->Uold)(i));
-      (s->Vd)(i) = -(s->Vdold)(i) + dt*(s->Vddold)(i) +
-	2.0/dt*((s->V)(i)-(s->Vold)(i));;
-      (s->Udd)(i) = (s->Uddold)(i) -
+
+      // Compute accelerations at the new time-step
+      (s->Udd)(i) = -(s->Uddold)(i) -
 	4.0/dt*((s->Udold)(i) + ((s->Uold)(i)-(s->U)(i))/dt);
-      (s->Vdd)(i) = (s->Vddold)(i) -
+      (s->Vdd)(i) = -(s->Vddold)(i) -
 	4.0/dt*((s->Vdold)(i) + ((s->Vold)(i)-(s->V)(i))/dt);
+
+      // Compute velocities at the new time-step
+      (s->Ud)(i) = (s->Udold)(i) + dt/2*((s->Udd)(i) + (s->Uddold)(i));
+      (s->Vd)(i) = (s->Vdold)(i) + dt/2*((s->Vdd)(i) + (s->Vddold)(i));
     }
   }
 }
