@@ -37,6 +37,7 @@ void Fluid::Init() {
 void Fluid::Init_GIntegration() {
   Genquad = 2; // Number of integration points for 1D edge integration
   Gnquad = 4;  // Number of integration points for 2D element integration
+  Gbnquad = 21; // Number of integration points for 1D integration along breadth
 
   Ges = unyque::DVector_zero(3*Genquad);
   Get = unyque::DVector_zero(3*Genquad);
@@ -158,6 +159,21 @@ void Fluid::Init_GIntegration() {
     Gw(6) = 0.066197;
     break;
   }
+
+  Gbs = unyque::DVector_zero(Gbnquad);
+  Gbw = unyque::DVector_zero(Gbnquad);
+  double gx[Gbnquad], gw[Gbnquad];
+
+  ZMIN = numeric_limits<double>::max(); ZMAX = numeric_limits<double>::min();
+  for (int i = 0; i < nnode; i++) {
+    if (sf->Nodes[i + 1]->y < ZMIN) { ZMIN = sf->Nodes[i + 1]->y; }
+    if (sf->Nodes[i + 1]->y > ZMAX) { ZMAX = sf->Nodes[i + 1]->y; }
+  }
+  unyque::GaussLegendre(ZMIN, ZMAX, gx, gw, Gnquad);
+  for (int i = 0; i < Genquad; i++) {
+    Gbs(i) = gx[i]; Gbw(i) = gw[i];
+  }
+
 }
 //------------------------------------------------------------------------------
 void Fluid::ReadFluid(char *filename) {

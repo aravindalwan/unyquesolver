@@ -3,6 +3,7 @@
 
 #include "fem.hpp"
 #include "ublas.hpp"
+#include "quad.hpp"
 
 class Fluid {
 
@@ -33,9 +34,11 @@ public:
   void ReadFluid(char *filename);
 
   // Numerical integration
-  int Gnquad, Genquad;
+  int Gnquad, Genquad, Gbnquad;
   unyque::DVector Gs, Gt, Gw;  // Quad pt (s,t) & weight w for 2D integration
   unyque::DVector Ges, Get, Gew; // Quad pt (s,t) & weight w for 1D integration
+  unyque::DVector Gbs, Gbw; // 1D Quad pt and weight along breadth of domain
+  double ZMIN, ZMAX;
   void Init_GIntegration();
 
   // Constructors

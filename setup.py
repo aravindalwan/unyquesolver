@@ -38,6 +38,7 @@ setup(name='unyquesolver',
       ext_modules = [
         Extension('unyquesolver._internals', [
                 'unyquesolver/internals/util/ublas.cpp',
+                'unyquesolver/internals/util/quad.cpp',
                 'unyquesolver/internals/fem/function.cpp',
                 'unyquesolver/internals/fem/fem.cpp',
                 'unyquesolver/internals/fem/nonelast.cpp',
@@ -58,6 +59,7 @@ setup(name='unyquesolver',
                 ],
                   depends = [
                 'unyquesolver/internals/util/ublas.hpp',
+                'unyquesolver/internals/util/quad.hpp',
                 'unyquesolver/internals/fem/function.hpp',
                 'unyquesolver/internals/fem/fem.hpp',
                 'unyquesolver/internals/fem/nonelast.hpp',
