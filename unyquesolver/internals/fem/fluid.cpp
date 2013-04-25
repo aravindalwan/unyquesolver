@@ -302,6 +302,9 @@ void Fluid::SolveDynamic(double tn, double dtn) {
     cout<<"No. of steps: "<<iter<<"   Max. change in pressure: "<<
       ublas::norm_inf((sf->P) - (sf->Pold))<<endl;
 
+  // Integrate fluid pressure to physical domain as traction
+  MapFluidToPhysical();
+
 }
 //------------------------------------------------------------------------------
 void Fluid::MapPhysicalToFluid() {
@@ -620,6 +623,56 @@ void Fluid::PrintResults() {
     fprintf(fp,"%.14lf  %.14lf %.14lf \n", xval, yval, (sf->P)(i));
   }
   fclose(fp);
+}
+//------------------------------------------------------------------------------
+void Fluid::MapFluidToPhysical() {
+
+  fem::FEM_Edge *ed;
+  int node;
+  double x, x1, x2, x3;
+
+  fill((s->P).begin(), (s->P).end(), 0.0);
+
+  // Loop over edges in physical domain
+  for (int eid = 0; eid < s->nbedge; eid++) {
+    ed = s->BEdges[eid+1];
+
+    if (ed->bmarker == MOVING_EDGE) {
+      for (int i = 0; i < 3; i++) { // Loop over the nodes in the edge
+
+	switch (i) {
+	case 0:
+	  node = ed->node1;
+	  break;
+	case 1:
+	  node = ed->node2;
+	  break;
+	case 2:
+	  node = ed->node3;
+	}
+
+	if (abs((s->P)(node - 1)) > 0) // Already computed traction at this node
+	  break;
+
+	// X-coordinate of this node
+	x = s->Nodes[node]->x;
+
+	// Loop over elements in fluid domain
+	for (int elem = 0; elem < nelem; elem++) {
+
+	  // X-coordinates of vertices of this element
+	  x1 = s->Nodes[ENC(elem, 1)]->x;
+	  x2 = s->Nodes[ENC(elem, 2)]->x;
+	  x3 = s->Nodes[ENC(elem, 3)]->x;
+
+
+
+	}
+      }
+    }
+
+  } // End of loop over edges
+
 }
 //------------------------------------------------------------------------------
 pyublas::numpy_vector<double> Fluid::Pressure() {

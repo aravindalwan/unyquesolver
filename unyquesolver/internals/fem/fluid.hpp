@@ -58,6 +58,7 @@ public:
   unyque::DMatrix CompF(int eid, unyque::DMatrix &B);
   void UpdateGlobalPressure();
   void PrintResults();
+  void MapFluidToPhysical();
   pyublas::numpy_vector<double> Pressure();
 };
 #endif

@@ -83,6 +83,9 @@ namespace fem {
     // Mechanical velocity and acceleration
     pyublas::numpy_vector<double> Ud, Vd, Udd, Vdd, Udold, Vdold, Uddold, Vddold;
 
+    // Traction due to fluid pressure
+    pyublas::numpy_vector<double> P;
+
     // Temperature
     pyublas::numpy_vector<double> T, Told;
 
