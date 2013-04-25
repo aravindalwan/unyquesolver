@@ -455,26 +455,55 @@ bp::object fem::Solver::HybridETMDynamic() {
   // Solve the dynamic hybrid electrothermomechanical actuation problem
   bp::list rvalue;
   unyque::DVector oldU, oldV;
-  double err, prevErr = -1.0, eps = 1e-6, disp;
+  double err, prevErr, eps = 1e-6, disp;
   FEM_Point *maxPoint = NULL;
-  bool pulledIn = false;
+  bool pulledIn;
 
-  oldU.resize(s->nnode); oldV.resize(s->nnode);
   oldU = unyque::DVector_zero(s->nnode); oldV = unyque::DVector_zero(s->nnode);
 
-  // Solve the dynamic heat conduction problem
-  double t_start = 0.0, t_end = 1.0e-5, dt = 1e-8, t;
+  double t_start = 0.0, t_end = 1.0e-5, dt = 1e-7, t;
 
   t = t_start;
   while (t <= t_end) {
 
-    nelast->BCtype(1,1) = 1;
-    nelast->BCvals(1,1) = -0.2*sin(2*4*atan2(1,1)*1e6*t);
-    nelast->BCvals(3,1) = -0.2*sin(2*4*atan2(1,1)*1e6*t);
-    nelast->SolveStatic();
-    fluid->SolveDynamic(t, dt);
+    prevErr = 1; pulledIn = false;
+
+    // Apply sinusoidal force
+    nelast->BCvals(1,1) = -1e4*sin(2*4*atan2(1,1)*2e5*t);
+
+    // Perform preprocessing steps
+    fluid->PreProcess();
+
+    do {
+
+      nelast->SolveStatic();
+      fluid->SolveDynamic(t, dt);
+
+      err = max(ublas::norm_inf((s->U)-oldU), ublas::norm_inf((s->V)-oldV));
+      oldU = (s->U); oldV = (s->V);
+      err = 0;
+
+      if ((err > prevErr) || (ublas::norm_inf(s->V) > newGap)) {
+	pulledIn = true;
+	break;
+      }
+
+      prevErr = err;
+
+    } while (err > eps);
+
+    if (!pulledIn) {
+      maxPoint = s->Nodes[nelast->MaxAbsDispPoint(-1)];
+      disp = (s->V)(maxPoint->id - 1);
+    } else {
+      disp = -newGap;
+      s->InitDOFs();
+      sf->InitDOFs();
+      break;
+    }
+
     rvalue.append(bp::make_tuple(t, fluid->Pressure()));
-    if (int((t - t_start)/dt) % 100 == 0)
+    if (int((t - t_start)/dt) % 10 == 0)
       cout << "Time: " << t << endl;
     t = t + dt;
 

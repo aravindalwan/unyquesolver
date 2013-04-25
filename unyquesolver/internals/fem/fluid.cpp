@@ -263,17 +263,21 @@ void Fluid::MapDOFs() {
 
 }
 //------------------------------------------------------------------------------
-void Fluid::SolveDynamic(double tn, double dtn) {
-
-  int iter = 0;
-  double err = 1.0, eps = 1e-10;
-  t = tn; dt = dtn;
+void Fluid::PreProcess() {
 
   // Store current pressure as the pressure at the prev timestep, Pold
   copy((sf->P).begin(), (sf->P).end(), (sf->Pold).begin());
 
   // Store current gap height as the gap height at the prev timestep, Hold
   copy((sf->H).begin(), (sf->H).end(), (sf->Hold).begin());
+
+}
+//------------------------------------------------------------------------------
+void Fluid::SolveDynamic(double tn, double dtn) {
+
+  int iter = 0;
+  double err = 1.0, eps = 1e-10;
+  t = tn; dt = dtn;
 
   // Map quantities from physical domain to fluid domain
   MapPhysicalToFluid();

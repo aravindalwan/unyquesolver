@@ -48,6 +48,7 @@ public:
   void MapDOFs();
 
   // Preparation of global matrices and solving
+  void PreProcess();
   void SolveDynamic(double tn, double dtn);
   void MapPhysicalToFluid();
   void ApplyInhomogeneousDBC();
