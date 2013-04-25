@@ -169,8 +169,8 @@ void Fluid::Init_GIntegration() {
     if (sf->Nodes[i + 1]->y < ZMIN) { ZMIN = sf->Nodes[i + 1]->y; }
     if (sf->Nodes[i + 1]->y > ZMAX) { ZMAX = sf->Nodes[i + 1]->y; }
   }
-  unyque::GaussLegendre(ZMIN, ZMAX, gx, gw, Gnquad);
-  for (int i = 0; i < Genquad; i++) {
+  unyque::GaussLegendre(ZMIN, ZMAX, gx, gw, Gbnquad);
+  for (int i = 0; i < Gbnquad; i++) {
     Gbs(i) = gx[i]; Gbw(i) = gw[i];
   }
 
@@ -645,7 +645,14 @@ void Fluid::MapFluidToPhysical() {
 
   fem::FEM_Edge *ed;
   int node;
-  double x, x1, x2, x3;
+  double x, z, si, ti;
+  unyque::DVector v0, v1, v2, N, Pe;
+
+  v0 = unyque::DVector(2);
+  v1 = unyque::DVector(2);
+  v2 = unyque::DVector(2);
+  N  = unyque::DVector(enode);
+  Pe = unyque::DVector(enode);
 
   fill((s->P).begin(), (s->P).end(), 0.0);
 
@@ -673,18 +680,59 @@ void Fluid::MapFluidToPhysical() {
 	// X-coordinate of this node
 	x = s->Nodes[node]->x;
 
-	// Loop over elements in fluid domain
-	for (int elem = 0; elem < nelem; elem++) {
+	for (int j = 0; j < Gbnquad; j++) {
 
-	  // X-coordinates of vertices of this element
-	  x1 = s->Nodes[ENC(elem, 1)]->x;
-	  x2 = s->Nodes[ENC(elem, 2)]->x;
-	  x3 = s->Nodes[ENC(elem, 3)]->x;
+	  z = Gbs(j); // Z-coordinate of the corresponding quadrature point
 
+	  // Loop over elements in fluid domain
+	  for (int elem = 0; elem < nelem; elem++) {
 
+	    // Compute barycentric coordinates of quad point w.r.t this element
+	    // Reference: http://www.blackpawn.com/texts/pointinpoly/
+	    v0(0) = sf->Nodes[ENC(elem, 3)]->x - sf->Nodes[ENC(elem, 1)]->x;
+	    v0(1) = sf->Nodes[ENC(elem, 3)]->y - sf->Nodes[ENC(elem, 1)]->y;
+	    v1(0) = sf->Nodes[ENC(elem, 2)]->x - sf->Nodes[ENC(elem, 1)]->x;
+	    v1(1) = sf->Nodes[ENC(elem, 2)]->y - sf->Nodes[ENC(elem, 1)]->y;
+	    v2(0) = x - sf->Nodes[ENC(elem, 1)]->x;
+	    v2(1) = z - sf->Nodes[ENC(elem, 1)]->y;
 
-	}
-      }
+	    si = (ublas::inner_prod(v1, v1) * ublas::inner_prod(v0, v2) -
+		  ublas::inner_prod(v0, v1) * ublas::inner_prod(v1, v2)) /
+	      (ublas::inner_prod(v0, v0) * ublas::inner_prod(v1, v1) -
+	       ublas::inner_prod(v0, v1) * ublas::inner_prod(v0, v1));
+
+	    ti = (ublas::inner_prod(v0, v0) * ublas::inner_prod(v1, v2) -
+		  ublas::inner_prod(v0, v1) * ublas::inner_prod(v0, v2)) /
+	      (ublas::inner_prod(v0, v0) * ublas::inner_prod(v1, v1) -
+	       ublas::inner_prod(v0, v1) * ublas::inner_prod(v0, v1));
+
+	    // If point lies outside element, ignore the element
+	    if ((si < 0) || (ti < 0) || (si + ti > 1))
+	      continue;
+
+	    // Compute basis functions at the quadrature point
+	    N(3) = 4.0*si*(1.0-si-ti);
+	    N(4) = 4.0*si*ti;
+	    N(5) = 4.0*ti*(1.0-si-ti);
+	    N(0) = (1.0-si-ti)-N(3)/2.0-N(5)/2.0;
+	    N(1) = si-N(4)/2.0-N(3)/2.0;
+	    N(2) = ti-N(5)/2.0-N(4)/2.0;
+
+	    // Store nodal pressure values for this element
+	    for (int k = 0; k < enode; k++)
+	      Pe(k) = (sf->P)(ENC(elem, k+1) - 1);
+
+	    // Add contribution to the traction integral
+	    (s->P)(node - 1) += ublas::inner_prod(N, Pe)*Gbw(j);
+
+	    // Stop searching for containing element now that we have found it
+	    break;
+
+	  } // End of loop over elements in fluid domain
+
+	} // End of loop over Gauss points
+
+      } // End of loop over the nodes in the edge
     }
 
   } // End of loop over edges
