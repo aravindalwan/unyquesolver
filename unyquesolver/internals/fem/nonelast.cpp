@@ -399,9 +399,9 @@ void NonElast::CompK() {
 	  }
 	}
 	// Compute 4*rho*[N]'[N]*(1/dt^2)
-	Ke += 1e-24*Ktemp*4*RHO/(dt*dt)*detF*Gw(ip)*detJ;
+	Ke += 1e-12*Ktemp*4*RHO/(dt*dt)*detF*Gw(ip)*detJ/EM;
 	// Compute rho*[N]'[N]*Udd
-	RHSe -= 1e-24*ublas::prod(Ktemp,Udde)*RHO*detF*Gw(ip)*detJ;
+	RHSe -= 1e-12*ublas::prod(Ktemp,Udde)*RHO*detF*Gw(ip)*detJ/EM;
       }
 
     } // End of loop over integration points
