@@ -189,7 +189,7 @@ bp::object fem::Solver::NLMechanics() {
   while (t <= t_end) {
 
     nelast->SolveDynamic(t,dt);
-    rvalue.append(bp::make_tuple(t, nelast->MaxAbsDisp(-1)));
+    rvalue.append(bp::make_tuple(t, nelast->Displacement(-1)));
     if (int((t - t_start)/dt) % 10 == 0)
       cout << "Time: " << t << endl;
     t = t + dt;

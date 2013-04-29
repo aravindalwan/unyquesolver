@@ -1008,3 +1008,15 @@ bp::list NonElast::DispBoundaryEdge(int bmarker, int direction) {
 
 }
 //------------------------------------------------------------------------------
+pyublas::numpy_vector<double> NonElast::Displacement(int direction) {
+  pyublas::numpy_vector<double> rval((s->U).size());
+  if (direction > 0)
+    rval.assign(s->U);
+  else if (direction < 0)
+    rval.assign(s->V);
+  else {
+    for (int j = 0; j < s->nbnode; j++)
+      rval(j) = sqrt(pow((s->U)(j),2) + pow((s->V)(j),2));
+  }
+  return rval;
+}

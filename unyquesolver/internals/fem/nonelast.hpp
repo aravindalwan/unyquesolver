@@ -76,5 +76,6 @@ public:
   double MaxAbsDisp(int direction);
   int MaxAbsDispPoint(int direction);
   bp::list DispBoundaryEdge(int bmarker, int direction);
+  pyublas::numpy_vector<double> Displacement(int direction);
 };
 #endif
