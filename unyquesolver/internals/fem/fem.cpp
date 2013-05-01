@@ -123,7 +123,7 @@ void fem::FEM_PhysicalDomain::InitDOFs() {
   Udold = unyque::DVector_zero(nnode); Vdold = unyque::DVector_zero(nnode);
   Udd = unyque::DVector_zero(nnode); Vdd = unyque::DVector_zero(nnode);
   Uddold = unyque::DVector_zero(nnode); Vddold = unyque::DVector_zero(nnode);
-  P = unyque::DVector_zero(nnode);
+  Pf = unyque::DVector_zero(nnode);
 
   T = unyque::DVector_scalar(nnode, 300.0);
   Told = unyque::DVector_scalar(nnode, 300.0);

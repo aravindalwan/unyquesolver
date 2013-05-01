@@ -654,7 +654,7 @@ void Fluid::MapFluidToPhysical() {
   N  = unyque::DVector(enode);
   Pe = unyque::DVector(enode);
 
-  fill((s->P).begin(), (s->P).end(), 0.0);
+  fill((s->Pf).begin(), (s->Pf).end(), 0.0);
 
   // Loop over edges in physical domain
   for (int eid = 0; eid < s->nbedge; eid++) {
@@ -674,7 +674,7 @@ void Fluid::MapFluidToPhysical() {
 	  node = ed->node3;
 	}
 
-	if (abs((s->P)(node - 1)) > 0) // Already computed traction at this node
+	if (abs((s->Pf)(node - 1)) > 0) // Already computed traction at this node
 	  break;
 
 	// X-coordinate of this node
@@ -723,7 +723,7 @@ void Fluid::MapFluidToPhysical() {
 	      Pe(k) = (sf->P)(ENC(elem, k+1) - 1);
 
 	    // Add contribution to the traction integral
-	    (s->P)(node - 1) += ublas::inner_prod(N, Pe)*Gbw(j);
+	    (s->Pf)(node - 1) += ublas::inner_prod(N, Pe)*Gbw(j);
 
 	    // Stop searching for containing element now that we have found it
 	    break;
