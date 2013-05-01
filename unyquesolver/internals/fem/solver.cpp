@@ -502,7 +502,7 @@ bp::object fem::Solver::HybridETMDynamic() {
       break;
     }
 
-    rvalue.append(bp::make_tuple(t, fluid->Pressure()));
+    rvalue.append(bp::make_tuple(t, nelast->DispBoundaryEdge(1, -1)));
     if (int((t - t_start)/dt) % 10 == 0)
       cout << "Time: " << t << endl;
     t = t + dt;

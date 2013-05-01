@@ -621,9 +621,12 @@ void NonElast::ApplyBC() {
     if (BCtype(bcno,1) == 2)
       ApplyNBC(bcno, ed);
 
-    // Check if b.c. is of type 0 or 2 and apply Elec BC if it is
-    if ((ielecforce == 1) && ((BCtype(bcno,1) == 0)||(BCtype(bcno,1) == 2)))
-      ApplyElecBC(ed);
+    // If b.c. is of type 0 or 2, apply elec & fluid traction BCs
+    if ((BCtype(bcno,1) == 0)||(BCtype(bcno,1) == 2)) {
+      if (ielecforce == 1)
+	ApplyElecBC(ed);
+      ApplyFluidPressureBC(ed);
+    }
 
   } //End of loop over boundary edges
 
@@ -855,6 +858,108 @@ void NonElast::CompBR(unyque::DVector &N, unyque::DVector nX) {
     BR1(1,2*ib)   = dp(1, ib)*nX(0) - dp(0, ib)*nX(1);
     BR1(1,2*ib+1) = 0.0;
 
+  }
+
+}
+//------------------------------------------------------------------------------
+void NonElast::ApplyFluidPressureBC(fem::FEM_Edge *ed) {
+
+  int Gnode, startip, iglobal, jglobal;
+  double si, ti, FinvTN, Pf, detJ1D = 0.0;
+  unyque::DMatrix Ecoor, Ke, dN;
+  unyque::DVector N, Pfe, nX(2), nx(2), tx(2), f(2), H(2), RHSe;
+
+  Ecoor = unyque::DMatrix_zero(enode,2);
+  Ke = unyque::DMatrix_zero(2*enode,2*enode);
+  N = unyque::DVector_zero(enode);
+  dN = unyque::DMatrix_zero(2, enode);
+  Pfe = unyque::DVector_zero(enode);
+  RHSe = unyque::DVector_zero(2*enode);
+
+  // Find the x & y coordinates of each node
+  for (int i = 0; i < enode; i++) {
+    Gnode = ENC(ed->eno-1, i+1); // Global node corr. to (i+1)th local node
+    Ecoor(i,0) = s->Nodes[Gnode]->x;
+    Ecoor(i,1) = s->Nodes[Gnode]->y;
+    Pfe(i) = (s->Pf)(Gnode - 1);
+  }
+
+  startip = Genquad*(ed->eid);
+  // Loop over the Gauss points for this edge
+  for (int ip = startip; ip < (startip + Genquad); ip++) {
+
+    // Compute shape functions and lengths of edges
+    si = Ges(ip); ti = Get(ip);
+    CompN(si, ti, N, dN);
+    CompJacobian(dN, Ecoor);
+    CompF(ed->eno-1);
+
+    // Compute the integrated fluid pressure at this point
+    Pf = ublas::inner_prod(N, Pfe);
+
+    // Find the components of normal & tangential vectors
+    nX(0) = cos(ed->normal);
+    nX(1) = sin(ed->normal);
+    FinvTN = abs(ublas::norm_2(ublas::prod(ublas::trans(Finv), nX)));
+    nx = ublas::prod(ublas::trans(Finv), nX)/FinvTN;
+    tx(0) = -nx(1); tx(1) = nx(0);
+
+    // Compute force per unit length due to fluid pressure
+    f = (-Pf*nx + 0.*tx)/EM;
+
+    // Compute [H] = detF * |[Finv]'*[N]| * [f]
+    H = detF*FinvTN*f;
+
+    // Find the length of this edge
+    switch (ed->eid) {
+    case 0:
+      detJ1D = slen;
+      break;
+    case 1:
+      detJ1D = vlen;
+      break;
+    case 2:
+      detJ1D = tlen;
+      break;
+    default:
+      if (c->DEBUG) cout<<"Invalid edge ID"<<endl;
+    }
+
+    // Create the elemental matrix Ke
+    CompBR(N, nX);
+    for (int i = 0; i < 2*enode; i++) {
+      for (int j = 0; j < 2*enode; j++) {
+ 	Ke(i,j) = (BR0(0,i)*(-Pf)*BR1(0,j) +
+		   BR0(0,i)*(0.)*BR1(1,j) +
+		   BR0(1,i)*(0.)*BR1(0,j) +
+		   BR0(1,i)*(Pf)*BR1(1,j))*Gew(ip)*detJ1D/EM;
+      }
+    }
+
+    // Create the elemental vector RHSe
+    for (int i = 0; i < enode; i++) {
+      RHSe(2*i) += N(i)*H(0)*Gew(ip)*detJ1D;
+      RHSe(2*i+1) += N(i)*H(1)*Gew(ip)*detJ1D;
+    }
+
+  }
+
+  // Assemble the elemental matrices Ke and RHSe to K and RHS respectively
+  for (int i = 0; i < enode; i++) {
+    iglobal = L2G(ENC(ed->eno-1, i+1)-1);
+    if (iglobal > 0) {
+      for (int j = 0; j < enode; j++) {
+	jglobal = L2G(ENC(ed->eno-1,j+1)-1);
+	if (jglobal > 0) {
+	  K.append_element(iglobal-1, jglobal-1, Ke(2*i,2*j));
+	  K.append_element(iglobal,   jglobal-1, Ke(2*i+1,2*j));
+	  K.append_element(iglobal-1, jglobal,   Ke(2*i,2*j+1));
+	  K.append_element(iglobal,   jglobal,   Ke(2*i+1,2*j+1));
+	}
+      }
+      RHS(iglobal-1) += RHSe(2*i);
+      RHS(iglobal)   += RHSe(2*i+1);
+    }
   }
 
 }

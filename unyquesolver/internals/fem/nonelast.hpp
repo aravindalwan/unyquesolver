@@ -67,6 +67,7 @@ public:
   void CompF(int eid);
   void ApplyElecBC(fem::FEM_Edge *ed);
   void CompBR(unyque::DVector &N, unyque::DVector nX);
+  void ApplyFluidPressureBC(fem::FEM_Edge *ed);
   void ApplyDBC(int nid);
   void ConstructGlobalU();
   void ConstructGlobalUDyn();
