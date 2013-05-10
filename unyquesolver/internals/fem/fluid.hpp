@@ -63,5 +63,6 @@ public:
   void PrintResults();
   void MapFluidToPhysical();
   pyublas::numpy_vector<double> Pressure();
+  pyublas::numpy_vector<double> GapHeight();
 };
 #endif

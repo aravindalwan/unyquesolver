@@ -722,8 +722,8 @@ void Fluid::MapFluidToPhysical() {
 	    for (int k = 0; k < enode; k++)
 	      Pe(k) = (sf->P)(ENC(elem, k+1) - 1);
 
-	    // Add contribution to the traction integral
-	    (s->Pf)(node - 1) += ublas::inner_prod(N, Pe)*Gbw(j);
+	    // Add contribution to the traction integral after converting to Pa
+	    (s->Pf)(node - 1) += 101325*ublas::inner_prod(N, Pe)*Gbw(j);
 
 	    // Stop searching for containing element now that we have found it
 	    break;
@@ -742,6 +742,12 @@ void Fluid::MapFluidToPhysical() {
 pyublas::numpy_vector<double> Fluid::Pressure() {
   pyublas::numpy_vector<double> rval((sf->P).size());
   rval.assign(sf->P);
+  return rval;
+}
+//------------------------------------------------------------------------------
+pyublas::numpy_vector<double> Fluid::GapHeight() {
+  pyublas::numpy_vector<double> rval((sf->H).size());
+  rval.assign(sf->H);
   return rval;
 }
 //------------------------------------------------------------------------------
