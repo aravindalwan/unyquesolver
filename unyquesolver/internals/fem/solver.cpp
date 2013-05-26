@@ -461,7 +461,9 @@ bp::object fem::Solver::HybridETMDynamic() {
 
   oldU = unyque::DVector_zero(s->nnode); oldV = unyque::DVector_zero(s->nnode);
 
-  double t_start = 0.0, t_end = 1.0e-5, dt = 1e-7, t;
+  double t_start = 0.0, t_end = 1.0e-5, dt = 1e-8, t;
+
+
 
   t = t_start;
   while (t <= t_end) {
@@ -469,14 +471,14 @@ bp::object fem::Solver::HybridETMDynamic() {
     prevErr = 1; pulledIn = false;
 
     // Apply sinusoidal force
-    nelast->BCvals(1,1) = -1e4*sin(2*4*atan2(1,1)*2e5*t);
+    nelast->BCvals(1,1) = -1e4; //*sin(2*4*atan2(1,1)*2e5*t);
 
     // Perform preprocessing steps
     fluid->PreProcess();
 
     do {
 
-      nelast->SolveStatic();
+      nelast->SolveDynamic(t,dt);
       fluid->SolveDynamic(t, dt);
 
       err = max(ublas::norm_inf((s->U)-oldU), ublas::norm_inf((s->V)-oldV));
@@ -502,8 +504,9 @@ bp::object fem::Solver::HybridETMDynamic() {
       break;
     }
 
-    rvalue.append(bp::make_tuple(t, nelast->DispBoundaryEdge(1, -1)));
-    if (int((t - t_start)/dt) % 10 == 0)
+    rvalue.append(bp::make_tuple(t, nelast->Displacement(-1),
+				 fluid->GapHeight(), fluid->Pressure()));
+    if (int((t - t_start)/dt) % 100 == 0)
       cout << "Time: " << t << endl;
     t = t + dt;
 

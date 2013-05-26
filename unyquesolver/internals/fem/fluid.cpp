@@ -675,7 +675,7 @@ void Fluid::MapFluidToPhysical() {
 	}
 
 	if (abs((s->Pf)(node - 1)) > 0) // Already computed traction at this node
-	  break;
+	  continue;
 
 	// X-coordinate of this node
 	x = s->Nodes[node]->x;

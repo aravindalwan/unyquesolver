@@ -1000,7 +1000,6 @@ void NonElast::ConstructGlobalU() {
 //------------------------------------------------------------------------------
 void NonElast::ConstructGlobalUDyn() {
   for (int i = 0; i < nnode; i++) {
-    if (L2G(i) > 0) {
 
       // Compute accelerations at the new time-step
       (s->Udd)(i) = -(s->Uddold)(i) -
@@ -1011,7 +1010,7 @@ void NonElast::ConstructGlobalUDyn() {
       // Compute velocities at the new time-step
       (s->Ud)(i) = (s->Udold)(i) + dt/2*((s->Udd)(i) + (s->Uddold)(i));
       (s->Vd)(i) = (s->Vdold)(i) + dt/2*((s->Vdd)(i) + (s->Vddold)(i));
-    }
+
   }
 }
 //------------------------------------------------------------------------------
