@@ -470,8 +470,8 @@ bp::object fem::Solver::HybridETMDynamic() {
 
     prevErr = 1; pulledIn = false;
 
-    // Apply sinusoidal force
-    nelast->BCvals(1,1) = -1e4; //*sin(2*4*atan2(1,1)*2e5*t);
+    // Apply sinusoidal force on the right boundary of top electrode
+    // nelast->BCvals(1,1) = -1e4*sin(2*4*atan2(1,1)*2e5*t);
 
     // Perform preprocessing steps
     fluid->PreProcess();
