@@ -185,25 +185,30 @@ bp::object fem::Solver::Solve(bp::list params) {
       break;
     case INTER_ELECTRODE_GAP: // Set electrostatic gap
       regionToMove = 2;
-      originalGap = 2.0;
-      newGap = param;
+      c->new_gap = param;
       displacement.resize(s->nnode,2);
       displacement = unyque::DMatrix_zero(s->nnode,2);
       for (int eid = 0; eid < s->nelem; eid++) {
         el = s->Elements[eid+1];
         if (el->reg == regionToMove) { // If element lies within regionToMove
-          displacement(el->node1 - 1,1) = -(newGap - originalGap);
-          displacement(el->node2 - 1,1) = -(newGap - originalGap);
-          displacement(el->node3 - 1,1) = -(newGap - originalGap);
-          displacement(el->node4 - 1,1) = -(newGap - originalGap);
-          displacement(el->node5 - 1,1) = -(newGap - originalGap);
-          displacement(el->node6 - 1,1) = -(newGap - originalGap);
+          displacement(el->node1 - 1,1) = -(c->new_gap - c->original_gap);
+          displacement(el->node2 - 1,1) = -(c->new_gap - c->original_gap);
+          displacement(el->node3 - 1,1) = -(c->new_gap - c->original_gap);
+          displacement(el->node4 - 1,1) = -(c->new_gap - c->original_gap);
+          displacement(el->node5 - 1,1) = -(c->new_gap - c->original_gap);
+          displacement(el->node6 - 1,1) = -(c->new_gap - c->original_gap);
         }
       }
       s->MoveMesh(displacement);
       break;
     case VOLTAGE: // Set voltage
       c->Phi_mult = param;
+      break;
+    case STOP_TIME: // Set time duration of simulation
+      c->t_stop = param;
+      break;
+    case TIME_STEP: // Set time-step
+      c->dt = param;
       break;
     default:
       cout << "Unknown random parameter type" << endl;
@@ -376,7 +381,7 @@ bp::object fem::Solver::HybridETMActuation() {
       err = max(ublas::norm_inf((s->U)-oldU), ublas::norm_inf((s->V)-oldV));
       oldU = (s->U); oldV = (s->V);
 
-      if ((i > 0) && ((err > prevErr)||(ublas::norm_inf(s->V) > newGap))) {
+      if ((i > 0) && ((err > prevErr)||(ublas::norm_inf(s->V) > c->new_gap))) {
 	pulledIn = true;
 	break;
       }
@@ -391,7 +396,7 @@ bp::object fem::Solver::HybridETMActuation() {
       maxPoint = s->Nodes[nelast->MaxAbsDispPoint(-1)];
       disp = (s->V)(maxPoint->id - 1);
     } else {
-      disp = -newGap;
+      disp = -c->new_gap;
       s->InitDOFs();
     }
 
@@ -428,7 +433,7 @@ bp::object fem::Solver::HybridETMPullin() {
       err = max(ublas::norm_inf((s->U)-oldU), ublas::norm_inf((s->V)-oldV));
       oldU = (s->U); oldV = (s->V);
 
-      if ((err > prevErr) || (ublas::norm_inf(s->V) > newGap)) {
+      if ((err > prevErr) || (ublas::norm_inf(s->V) > c->new_gap)) {
 	pulledIn = true;
 	break;
       }
@@ -455,20 +460,15 @@ bp::object fem::Solver::HybridETMDynamic() {
   // Solve the dynamic hybrid electrothermomechanical actuation problem
   bp::list rvalue;
   unyque::DVector oldU, oldV;
-  double err, prevErr, eps = 1e-6, disp;
+  double err, prevErr, eps = 1e-8, disp;
   FEM_Point *maxPoint = NULL;
   bool pulledIn;
 
   oldU = unyque::DVector_zero(s->nnode); oldV = unyque::DVector_zero(s->nnode);
 
-  double t_start = 0.0, t_end = 1.0e-5, dt = 1e-8, t;
+  while (c->t <= c->t_stop) {
 
-
-
-  t = t_start;
-  while (t <= t_end) {
-
-    prevErr = 1; pulledIn = false;
+    prevErr = 1e6; pulledIn = false;
 
     // Apply sinusoidal force on the right boundary of top electrode
     // nelast->BCvals(1,1) = -1e4*sin(2*4*atan2(1,1)*2e5*t);
@@ -478,14 +478,14 @@ bp::object fem::Solver::HybridETMDynamic() {
 
     do {
 
-      nelast->SolveDynamic(t,dt);
-      fluid->SolveDynamic(t, dt);
+      nelast->SolveDynamic(c->t,c->dt);
+      fluid->SolveDynamic(c->t, c->dt);
 
       err = max(ublas::norm_inf((s->U)-oldU), ublas::norm_inf((s->V)-oldV));
       oldU = (s->U); oldV = (s->V);
       err = 0;
 
-      if ((err > prevErr) || (ublas::norm_inf(s->V) > newGap)) {
+      if ((err > prevErr) || (ublas::norm_inf(s->V) > c->new_gap)) {
 	pulledIn = true;
 	break;
       }
@@ -498,19 +498,22 @@ bp::object fem::Solver::HybridETMDynamic() {
       maxPoint = s->Nodes[nelast->MaxAbsDispPoint(-1)];
       disp = (s->V)(maxPoint->id - 1);
     } else {
-      disp = -newGap;
+      disp = -c->new_gap;
       s->InitDOFs();
       sf->InitDOFs();
       break;
     }
 
-    rvalue.append(bp::make_tuple(t, nelast->Displacement(-1),
+    rvalue.append(bp::make_tuple(c->t, nelast->Displacement(-1),
 				 fluid->GapHeight(), fluid->Pressure()));
-    if (int((t - t_start)/dt) % 100 == 0)
-      cout << "Time: " << t << endl;
-    t = t + dt;
+
+    cout << "\rTime: " << c->t << " End: " << c->t_stop << " " << flush;
+
+    c->t += c->dt;
 
   }
+
+  cout << endl;
 
   return rvalue;
 

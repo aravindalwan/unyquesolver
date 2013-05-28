@@ -155,6 +155,8 @@ void fem::FEM_FluidDomain::InitDOFs() {
 FEM_Common::FEM_Common() {
   DEBUG = 0;
   Phi_mult = 1; Phi_inf = 0;
+  original_gap = new_gap = 2.0;
+  t = t_stop = dt = 0;
   functions = new Function();
 }
 //------------------------------------------------------------------------------

@@ -16,6 +16,9 @@ namespace bp = boost::python;
 #define THERMAL_CONDUCTIVITY  2
 #define INTER_ELECTRODE_GAP   3
 #define VOLTAGE               4
+// Spatially varying boundary is #5
+#define STOP_TIME             6
+#define TIME_STEP             7
 
 // Define analysis modes
 #define MECHANICS                 1

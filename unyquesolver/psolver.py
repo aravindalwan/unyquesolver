@@ -45,6 +45,8 @@ THERMAL_CONDUCTIVITY = 2
 INTER_ELECTRODE_GAP = 3
 VOLTAGE = 4
 SPATIALLY_VARYING_BOUNDARY = 5
+STOP_TIME = 6
+TIME_STEP = 7
 
 class ParametricSolver(object):
     '''Base class to solve a PDE for different sets of parameters.
