@@ -473,15 +473,17 @@ bp::object fem::Solver::HybridETMDynamic() {
     prevErr = 1e6; pulledIn = false;
 
     // Apply sinusoidal force on the right boundary of top electrode
-    // nelast->BCvals(1,1) = -1e4*sin(2*4*atan2(1,1)*2e5*t);
+    // nelast->BCvals(1,1) = -1e4*sin(2*4*atan2(1,1)*2e5*c->t);
 
     // Perform preprocessing steps
     fluid->PreProcess();
 
     do {
 
-      nelast->SolveDynamic(c->t,c->dt);
+      eles->SolveStatic();
+      //therm->SolveStatic();
       fluid->SolveDynamic(c->t, c->dt);
+      nelast->SolveDynamic(c->t,c->dt);
 
       err = max(ublas::norm_inf((s->U)-oldU), ublas::norm_inf((s->V)-oldV));
       oldU = (s->U); oldV = (s->V);
