@@ -110,6 +110,11 @@ class ParametricSolver(object):
             # SPATIALLY_VARYING_BOUNDARY is not one of the parameters, so call
             # the solver on the entire parameter set
 
+            # Re-initialize solver for the new physical domain
+            self._solver.Init(self.pdomain.nodes, self.pdomain.edges,
+                          self.pdomain.elements)
+
+            # Call the solver the compute the solution
             rvalue = self._solver.Solve(parameter_set)
 
         return rvalue

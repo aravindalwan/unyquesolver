@@ -466,6 +466,8 @@ bp::object fem::Solver::HybridETMDynamic() {
 
   oldU = unyque::DVector_zero(s->nnode); oldV = unyque::DVector_zero(s->nnode);
 
+  c->t = 0;
+
   while (c->t <= c->t_stop) {
 
     prevErr = 1e6; pulledIn = false;
@@ -504,16 +506,17 @@ bp::object fem::Solver::HybridETMDynamic() {
       break;
     }
 
-    rvalue.append(bp::make_tuple(c->t, nelast->Displacement(-1),
-				 fluid->GapHeight(), fluid->Pressure()));
+    // rvalue.append(bp::make_tuple(c->t, nelast->Displacement(-1),
+    // 				 fluid->GapHeight(), fluid->Pressure()));
+    rvalue.append(bp::make_tuple(c->t, nelast->DispBoundaryEdge(1, -1)));
 
-    cout << "\rTime: " << c->t << " End: " << c->t_stop << " " << flush;
+    //cout << "\rTime: " << c->t << " End: " << c->t_stop << " " << flush;
 
     c->t += c->dt;
 
   }
 
-  cout << endl;
+  //cout << endl;
 
   return rvalue;
 
