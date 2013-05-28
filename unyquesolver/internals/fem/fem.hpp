@@ -1,10 +1,10 @@
 #ifndef __FEM_H
 #define __FEM_H
 
+#include <boost/python.hpp> // Python requirement: this has to be included first
+#include <boost/python/list.hpp>
 #include <vector>
 #include <fstream>
-#include <boost/python.hpp>
-#include <boost/python/list.hpp>
 #include <pyublas/numpy.hpp>
 #include "ublas.hpp"
 #include "function.hpp"

@@ -1,7 +1,6 @@
 #ifndef __ELES_HPP
 #define __ELES_HPP
 
-#include <math.h>
 #include "fem.hpp"
 #include "ublas.hpp"
 
