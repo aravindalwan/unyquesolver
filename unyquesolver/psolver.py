@@ -195,7 +195,7 @@ class ParametricSolverMaster(ParametricSolver):
                 if i == mpihelper.MASTER:
                     continue # Master doesn't do any work!
                 else:
-                    active_workers -= self._send_next_set(i)
+                    active_workers -= self._send_next_set(i, tag)
 
             status = mpihelper.mpi.Status()
             while active_workers > 0:
@@ -210,7 +210,7 @@ class ParametricSolverMaster(ParametricSolver):
                                                   tag = SOLUTION)
 
                 # Assign the waiting worker a new task
-                active_workers -= self._send_next_set(waiting_worker)
+                active_workers -= self._send_next_set(waiting_worker, tag)
 
                 # Log this result
                 meta_data = {'replicate': position, 'raw_result': result,
@@ -229,8 +229,19 @@ class ParametricSolverMaster(ParametricSolver):
 
             while self.parameter_sets:
 
-                result = self._get_solution(self.parameter_sets.pop())
+                pset = self.parameter_sets.pop()
                 position = len(self.parameter_sets)
+                while not self._results_log.isEnabledFor(logmanager.REPLICATE,
+                                                         (tag, position)):
+                    if self.parameter_sets:
+                        pset = self.parameter_sets.pop()
+                        position = len(self.parameter_sets)
+                    else:
+                        pset = None
+                        break
+                if not pset:
+                    break
+                result = self._get_solution(pset)
 
                 # Log this result
                 meta_data = {'replicate': position, 'raw_result': result,
@@ -245,17 +256,22 @@ class ParametricSolverMaster(ParametricSolver):
                 # Yield the result along with its position in the results list
                 yield (position, result)
 
-    def _send_next_set(self, destination):
+    def _send_next_set(self, destination, tag):
         '''Send the next task to the worker at the given destination. If all the
         tasks are complete, then send a position flag of -1 to indicate that
         there are no more tasks for that worker and that it may stop asking for
         tasks. Return False if the worker if the worker was assigned a task and
-        is still active and True if it was asked to stop.
+        is still active and True if it was asked to stop. Before sending a task,
+        check if it has already been performed and ignore it if it has.
         '''
 
         try:
             pset = self.parameter_sets.pop() # Get task at the end of the list
             position = len(self.parameter_sets)
+            while not self._results_log.isEnabledFor(logmanager.REPLICATE,
+                                                     (tag, position)):
+                pset = self.parameter_sets.pop() # Get task at the end of list
+                position = len(self.parameter_sets)
         except IndexError: # No more tasks
             pset = []
             position = -1
