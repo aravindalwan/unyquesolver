@@ -159,6 +159,13 @@ void fem::Solver::Init(bp::list nodes, bp::list edges, bp::list elements) {
     if (c->DEBUG) cout<<"done"<<endl;
   }
 
+  if (useFluid && fluid != NULL) {
+    // fluid will normally be NULL at this point, except when updating physical
+    // domain to a new mesh. If it is not null, then update its pointer to the
+    // new physical domain.
+    fluid->s = s;
+  }
+
 }
 //------------------------------------------------------------------------------
 bp::object fem::Solver::Solve(bp::list params) {
@@ -509,7 +516,7 @@ bp::object fem::Solver::HybridETMDynamic() {
     }
 
     // rvalue.append(bp::make_tuple(c->t, nelast->Displacement(-1),
-    // 				 fluid->GapHeight(), fluid->Pressure()));
+    //  				 fluid->GapHeight(), fluid->Pressure()));
     rvalue.append(bp::make_tuple(c->t, nelast->DispBoundaryEdge(1, -1)));
 
     //cout << "\rTime: " << c->t << " End: " << c->t_stop << " " << flush;
