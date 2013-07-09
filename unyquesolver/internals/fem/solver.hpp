@@ -58,7 +58,6 @@ namespace fem {
     Elec *elec;
     ElEs *eles;
     Fluid *fluid;
-    double newGap, originalGap;
 
     bp::object (Solver::*analysis)();
 
