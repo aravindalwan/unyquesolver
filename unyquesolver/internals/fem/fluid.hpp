@@ -31,6 +31,8 @@ public:
   // Material properties
   double ETA, LAMBDA, P_ATM, KN;
   int MOVING_EDGE, FIXED_EDGE; // IDs of moving and fixed edges in physical domain
+  unyque::IVector Node2MovingEdge, Node2FixedEdge;
+  unyque::IMatrix IntegrationPoint2Element;
   void ReadFluid(char *filename);
 
   // Numerical integration
@@ -51,9 +53,10 @@ public:
   void MapDOFs();
 
   // Preparation of global matrices and solving
+  void MapPhysicalToFluid();
   void PreProcess();
   void SolveDynamic(double tn, double dtn);
-  void MapPhysicalToFluid();
+  void CompGapHeight();
   void ApplyInhomogeneousDBC();
   void CompDomIntegrals();
   void CompN(double s, double t, unyque::DVector &N, unyque::DMatrix &dN);
@@ -61,7 +64,7 @@ public:
   unyque::DMatrix CompF(int eid, unyque::DMatrix &B);
   void UpdateGlobalPressure();
   void PrintResults();
-  void MapFluidToPhysical();
+  void CompPressureTraction();
   pyublas::numpy_vector<double> Pressure();
   pyublas::numpy_vector<double> GapHeight();
 };

@@ -279,60 +279,16 @@ void Fluid::MapDOFs() {
 
 }
 //------------------------------------------------------------------------------
-void Fluid::PreProcess() {
-
-  // Store current pressure as the pressure at the prev timestep, Pold
-  copy((sf->P).begin(), (sf->P).end(), (sf->Pold).begin());
-
-  // Store current gap height as the gap height at the prev timestep, Hold
-  copy((sf->H).begin(), (sf->H).end(), (sf->Hold).begin());
-
-}
-//------------------------------------------------------------------------------
-void Fluid::SolveDynamic(double tn, double dtn) {
-
-  int iter = 0;
-  double err = 1.0, eps = 1e-10;
-  t = tn; dt = dtn;
-
-  // Map quantities from physical domain to fluid domain
-  MapPhysicalToFluid();
-
-  // Solve for the pressure at the end of new timestep
-  ApplyInhomogeneousDBC();
-  do {
-    K.resize(ndof,ndof);
-    RHS = unyque::DVector_zero(ndof);
-    dU = unyque::DVector_zero(ndof);
-    CompDomIntegrals();
-    dU = unyque::umfpackSolve(K, RHS);
-    err = ublas::norm_inf(dU);
-    UpdateGlobalPressure();
-    iter++;
-    if (c->DEBUG) cout<<"iteration: "<<iter<<"  Error: "<<err<<endl;
-  } while (err > eps && iter <= 25);
-  if (iter > 25)
-    cout << "Warning: Too many Newton-Raphson iterations" << endl;
-  if (c->DEBUG) PrintResults();
-  if (c->DEBUG)
-    cout<<"No. of steps: "<<iter<<"   Max. change in pressure: "<<
-      ublas::norm_inf((sf->P) - (sf->Pold))<<endl;
-
-  // Integrate fluid pressure to physical domain as traction
-  MapFluidToPhysical();
-
-}
-//------------------------------------------------------------------------------
 void Fluid::MapPhysicalToFluid() {
 
   fem::FEM_Edge *ed;
-  unyque::DVector N, Quantity, yMoving, yFixed;
-  double x, x1, x2, x3;
+  unyque::DVector N, v0, v1, v2;
+  double x, x1, x2, x3, z, si, ti;
+  int node;
 
   N = unyque::DVector_zero(3);
-  Quantity = unyque::DVector_zero(3);
-  yMoving = unyque::DVector_zero(nnode);
-  yFixed = unyque::DVector_zero(nnode);
+  Node2MovingEdge = unyque::IVector_zero(nnode);
+  Node2FixedEdge = unyque::IVector_zero(nnode);
 
   for (int i = 0; i < nnode; i++) {
     for (int eid = 0; eid < s->nbedge; eid++) {
@@ -355,45 +311,192 @@ void Fluid::MapPhysicalToFluid() {
 
       // Check if edge has the same ID as MOVING_EDGE
       if (ed->bmarker == MOVING_EDGE) {
-	if ((x - x1)*(x - x2) <= 0) { // If node belongs to this edge
-
-	  // Get y-position of edge nodes
-	  Quantity(0) = s->Nodes[ed->node1]->y + (s->V)(ed->node1-1);
-	  Quantity(1) = s->Nodes[ed->node2]->y + (s->V)(ed->node2-1);
-	  Quantity(2) = s->Nodes[ed->node3]->y + (s->V)(ed->node3-1);
-
-	  // Store y-position of edge at x-location corresponding to node
-	  yMoving(i) = ublas::inner_prod(N, Quantity);
-
-	  // Get x-displacement of edge nodes
-	  Quantity(0) = (s->U)(ed->node1-1);
-	  Quantity(1) = (s->U)(ed->node2-1);
-	  Quantity(2) = (s->U)(ed->node3-1);
-
-	  // Store x-diplacement of edge at x-location corresponding to node
-	  (sf->U)(i) = ublas::inner_prod(N, Quantity);
-
-	}
+	if ((x - x1)*(x - x2) <= 0) // If node belongs to this edge
+	  Node2MovingEdge(i) = eid;
       }
 
       // Check if edge has the same ID as FIXED_EDGE
       if (ed->bmarker == FIXED_EDGE) {
-	if ((x - x1)*(x - x2) <= 0) { // If node belongs to this edge
-
-	  // Get y-position of edge nodes
-	  Quantity(0) = s->Nodes[ed->node1]->y + (s->V)(ed->node1-1);
-	  Quantity(1) = s->Nodes[ed->node2]->y + (s->V)(ed->node2-1);
-	  Quantity(2) = s->Nodes[ed->node3]->y + (s->V)(ed->node3-1);
-
-	  // Store y-position of edge at x-location corresponding to node
-	  yFixed(i) = ublas::inner_prod(N, Quantity);
-
-	}
+	if ((x - x1)*(x - x2) <= 0) // If node belongs to this edge
+	  Node2FixedEdge(i) = eid;
       }
 
     } // End loop over edges
 
-    (sf->H)(i) = abs(yMoving(i) - yFixed(i)); // Store gap height at this node
+  } // End loop over nodes
+
+  v0 = unyque::DVector(2);
+  v1 = unyque::DVector(2);
+  v2 = unyque::DVector(2);
+  IntegrationPoint2Element = unyque::IMatrix(s->nnode, Gbnquad);
+  std::fill(IntegrationPoint2Element.data().begin(),
+	    IntegrationPoint2Element.data().end(), -1);
+
+  // Loop over edges in physical domain
+  for (int eid = 0; eid < s->nbedge; eid++) {
+    ed = s->BEdges[eid+1];
+
+    if (ed->bmarker == MOVING_EDGE) {
+      for (int i = 0; i < 3; i++) { // Loop over the nodes in the edge
+
+	switch (i) {
+	case 0:
+	  node = ed->node1 - 1;
+	  break;
+	case 1:
+	  node = ed->node2 - 1;
+	  break;
+	case 2:
+	  node = ed->node3 - 1;
+	}
+
+	// If we have already mapped elements for this node, then ignore it
+	if (IntegrationPoint2Element(node, 0) >= 0)
+	  continue;
+
+	// X-coordinate of this node
+	x = s->Nodes[node + 1]->x;
+
+	for (int j = 0; j < Gbnquad; j++) {
+
+	  z = Gbs(j); // Z-coordinate of the corresponding quadrature point
+
+	  // Loop over elements in fluid domain
+	  for (int elem = 0; elem < nelem; elem++) {
+
+	    // Compute barycentric coordinates of quad point w.r.t this element
+	    // Reference: http://www.blackpawn.com/texts/pointinpoly/
+	    v0(0) = sf->Nodes[ENC(elem, 3)]->x - sf->Nodes[ENC(elem, 1)]->x;
+	    v0(1) = sf->Nodes[ENC(elem, 3)]->y - sf->Nodes[ENC(elem, 1)]->y;
+	    v1(0) = sf->Nodes[ENC(elem, 2)]->x - sf->Nodes[ENC(elem, 1)]->x;
+	    v1(1) = sf->Nodes[ENC(elem, 2)]->y - sf->Nodes[ENC(elem, 1)]->y;
+	    v2(0) = x - sf->Nodes[ENC(elem, 1)]->x;
+	    v2(1) = z - sf->Nodes[ENC(elem, 1)]->y;
+
+	    si = (ublas::inner_prod(v1, v1) * ublas::inner_prod(v0, v2) -
+		  ublas::inner_prod(v0, v1) * ublas::inner_prod(v1, v2)) /
+	      (ublas::inner_prod(v0, v0) * ublas::inner_prod(v1, v1) -
+	       ublas::inner_prod(v0, v1) * ublas::inner_prod(v0, v1));
+
+	    ti = (ublas::inner_prod(v0, v0) * ublas::inner_prod(v1, v2) -
+		  ublas::inner_prod(v0, v1) * ublas::inner_prod(v0, v2)) /
+	      (ublas::inner_prod(v0, v0) * ublas::inner_prod(v1, v1) -
+	       ublas::inner_prod(v0, v1) * ublas::inner_prod(v0, v1));
+
+	    // If point lies inside element, store the mapping
+	    // The 1e-12 is a hack for end cases where the Gauss point lies on
+	    // the boundary of the domain
+	    if ((si >= -1e-12) && (ti >= -1e-12) && (si + ti <= 1 + 1e-12)) {
+	      IntegrationPoint2Element(node, j) = elem;
+	      break;
+	    }
+
+	  } // End of loop over elements in fluid domain
+
+	} // End of loop over Gauss points
+
+      } // End of loop over the nodes in the edge
+    } // End if
+
+  } // End of loop over edges
+
+}
+//------------------------------------------------------------------------------
+void Fluid::PreProcess() {
+
+  // Store current pressure as the pressure at the prev timestep, Pold
+  copy((sf->P).begin(), (sf->P).end(), (sf->Pold).begin());
+
+  // Store current gap height as the gap height at the prev timestep, Hold
+  copy((sf->H).begin(), (sf->H).end(), (sf->Hold).begin());
+
+}
+//------------------------------------------------------------------------------
+void Fluid::SolveDynamic(double tn, double dtn) {
+
+  int iter = 0;
+  double err = 1.0, eps = 1e-10;
+  t = tn; dt = dtn;
+
+  // Compute gap height and X-displacement of projected domain
+  CompGapHeight();
+
+  // Solve for the pressure at the end of new timestep
+  ApplyInhomogeneousDBC();
+  do {
+    K.resize(ndof,ndof);
+    RHS = unyque::DVector_zero(ndof);
+    dU = unyque::DVector_zero(ndof);
+    CompDomIntegrals();
+    dU = unyque::umfpackSolve(K, RHS);
+    err = ublas::norm_inf(dU);
+    UpdateGlobalPressure();
+    iter++;
+    if (c->DEBUG) cout<<"iteration: "<<iter<<"  Error: "<<err<<endl;
+  } while (err > eps && iter <= 25);
+  if (iter > 25)
+    cout << "Warning: Too many Newton-Raphson iterations" << endl;
+  if (c->DEBUG) PrintResults();
+  if (c->DEBUG)
+    cout<<"No. of steps: "<<iter<<"   Max. change in pressure: "<<
+      ublas::norm_inf((sf->P) - (sf->Pold))<<endl;
+
+  // Integrate fluid pressure to physical domain as traction
+  CompPressureTraction();
+
+}
+//------------------------------------------------------------------------------
+void Fluid::CompGapHeight() {
+
+  fem::FEM_Edge *ed;
+  unyque::DVector N, Quantity;
+  double x, x1, x2, x3;
+
+  N = unyque::DVector_zero(3);
+  Quantity = unyque::DVector_zero(3);
+
+  for (int i = 0; i < nnode; i++) {
+
+    // Get edge on moving boundary
+    ed = s->BEdges[Node2MovingEdge(i)+1];
+
+    // Store x-coordinates of current node and moving edge nodes
+    x = sf->Nodes[i+1]->x;
+    x1 = s->Nodes[ed->node1]->x;
+    x2 = s->Nodes[ed->node2]->x;
+    x3 = s->Nodes[ed->node3]->x;
+
+    // Compute basis functions
+    N(0) = (x - x2)*(x - x3)/(x1 - x2)/(x1 - x3);
+    N(1) = (x - x1)*(x - x3)/(x2 - x1)/(x2 - x3);
+    N(2) = (x - x1)*(x - x2)/(x3 - x1)/(x3 - x2);
+
+    // Get y-position of edge nodes
+    Quantity(0) = s->Nodes[ed->node1]->y + (s->V)(ed->node1-1);
+    Quantity(1) = s->Nodes[ed->node2]->y + (s->V)(ed->node2-1);
+    Quantity(2) = s->Nodes[ed->node3]->y + (s->V)(ed->node3-1);
+
+    // Store y-position of edge at x-location corresponding to node
+    (sf->H)(i) = ublas::inner_prod(N, Quantity);
+
+    // Get x-displacement of edge nodes
+    Quantity(0) = (s->U)(ed->node1-1);
+    Quantity(1) = (s->U)(ed->node2-1);
+    Quantity(2) = (s->U)(ed->node3-1);
+
+    // Store x-diplacement of edge at x-location corresponding to node
+    (sf->U)(i) = ublas::inner_prod(N, Quantity);
+
+    // Get edge on fixed boundary
+    ed = s->BEdges[Node2FixedEdge(i)+1];
+
+    // Get y-position of edge nodes
+    Quantity(0) = s->Nodes[ed->node1]->y + (s->V)(ed->node1-1);
+    Quantity(1) = s->Nodes[ed->node2]->y + (s->V)(ed->node2-1);
+    Quantity(2) = s->Nodes[ed->node3]->y + (s->V)(ed->node3-1);
+
+    // Compute gap height at this node
+    (sf->H)(i) = abs((sf->H)(i) - ublas::inner_prod(N, Quantity));
 
   } // End loop over nodes
 
@@ -641,10 +744,9 @@ void Fluid::PrintResults() {
   fclose(fp);
 }
 //------------------------------------------------------------------------------
-void Fluid::MapFluidToPhysical() {
+void Fluid::CompPressureTraction() {
 
-  fem::FEM_Edge *ed;
-  int node;
+  int elem;
   double x, z, si, ti;
   unyque::DVector v0, v1, v2, N, Pe;
 
@@ -656,86 +758,61 @@ void Fluid::MapFluidToPhysical() {
 
   fill((s->Pf).begin(), (s->Pf).end(), 0.0);
 
-  // Loop over edges in physical domain
-  for (int eid = 0; eid < s->nbedge; eid++) {
-    ed = s->BEdges[eid+1];
+  // Loop over nodes in physical domain
+  for (int node = 0; node < s->nnode; node++) {
 
-    if (ed->bmarker == MOVING_EDGE) {
-      for (int i = 0; i < 3; i++) { // Loop over the nodes in the edge
+    // Confirm that this node lies on the moving edge by checking if it has a
+    // valid element mapping for the first integration point. If it doesn't,
+    // then don't do anything for this node
+    if (IntegrationPoint2Element(node, 0) < 0)
+      continue;
 
-	switch (i) {
-	case 0:
-	  node = ed->node1;
-	  break;
-	case 1:
-	  node = ed->node2;
-	  break;
-	case 2:
-	  node = ed->node3;
-	}
+    // X-coordinate of this node
+    x = s->Nodes[node + 1]->x;
 
-	if (abs((s->Pf)(node - 1)) > 0) // Already computed traction at this node
-	  continue;
+    for (int j = 0; j < Gbnquad; j++) {
 
-	// X-coordinate of this node
-	x = s->Nodes[node]->x;
+      z = Gbs(j); // Z-coordinate of the corresponding quadrature point
 
-	for (int j = 0; j < Gbnquad; j++) {
+      elem = IntegrationPoint2Element(node, j);
 
-	  z = Gbs(j); // Z-coordinate of the corresponding quadrature point
+      // Compute barycentric coordinates of quad point w.r.t this element
+      // Reference: http://www.blackpawn.com/texts/pointinpoly/
+      v0(0) = sf->Nodes[ENC(elem, 3)]->x - sf->Nodes[ENC(elem, 1)]->x;
+      v0(1) = sf->Nodes[ENC(elem, 3)]->y - sf->Nodes[ENC(elem, 1)]->y;
+      v1(0) = sf->Nodes[ENC(elem, 2)]->x - sf->Nodes[ENC(elem, 1)]->x;
+      v1(1) = sf->Nodes[ENC(elem, 2)]->y - sf->Nodes[ENC(elem, 1)]->y;
+      v2(0) = x - sf->Nodes[ENC(elem, 1)]->x;
+      v2(1) = z - sf->Nodes[ENC(elem, 1)]->y;
 
-	  // Loop over elements in fluid domain
-	  for (int elem = 0; elem < nelem; elem++) {
+      si = (ublas::inner_prod(v1, v1) * ublas::inner_prod(v0, v2) -
+	    ublas::inner_prod(v0, v1) * ublas::inner_prod(v1, v2)) /
+	(ublas::inner_prod(v0, v0) * ublas::inner_prod(v1, v1) -
+	 ublas::inner_prod(v0, v1) * ublas::inner_prod(v0, v1));
 
-	    // Compute barycentric coordinates of quad point w.r.t this element
-	    // Reference: http://www.blackpawn.com/texts/pointinpoly/
-	    v0(0) = sf->Nodes[ENC(elem, 3)]->x - sf->Nodes[ENC(elem, 1)]->x;
-	    v0(1) = sf->Nodes[ENC(elem, 3)]->y - sf->Nodes[ENC(elem, 1)]->y;
-	    v1(0) = sf->Nodes[ENC(elem, 2)]->x - sf->Nodes[ENC(elem, 1)]->x;
-	    v1(1) = sf->Nodes[ENC(elem, 2)]->y - sf->Nodes[ENC(elem, 1)]->y;
-	    v2(0) = x - sf->Nodes[ENC(elem, 1)]->x;
-	    v2(1) = z - sf->Nodes[ENC(elem, 1)]->y;
+      ti = (ublas::inner_prod(v0, v0) * ublas::inner_prod(v1, v2) -
+	    ublas::inner_prod(v0, v1) * ublas::inner_prod(v0, v2)) /
+	(ublas::inner_prod(v0, v0) * ublas::inner_prod(v1, v1) -
+	 ublas::inner_prod(v0, v1) * ublas::inner_prod(v0, v1));
 
-	    si = (ublas::inner_prod(v1, v1) * ublas::inner_prod(v0, v2) -
-		  ublas::inner_prod(v0, v1) * ublas::inner_prod(v1, v2)) /
-	      (ublas::inner_prod(v0, v0) * ublas::inner_prod(v1, v1) -
-	       ublas::inner_prod(v0, v1) * ublas::inner_prod(v0, v1));
+      // Compute basis functions at the quadrature point
+      N(3) = 4.0*si*(1.0-si-ti);
+      N(4) = 4.0*si*ti;
+      N(5) = 4.0*ti*(1.0-si-ti);
+      N(0) = (1.0-si-ti)-N(3)/2.0-N(5)/2.0;
+      N(1) = si-N(4)/2.0-N(3)/2.0;
+      N(2) = ti-N(5)/2.0-N(4)/2.0;
 
-	    ti = (ublas::inner_prod(v0, v0) * ublas::inner_prod(v1, v2) -
-		  ublas::inner_prod(v0, v1) * ublas::inner_prod(v0, v2)) /
-	      (ublas::inner_prod(v0, v0) * ublas::inner_prod(v1, v1) -
-	       ublas::inner_prod(v0, v1) * ublas::inner_prod(v0, v1));
+      // Store nodal pressure values for this element
+      for (int k = 0; k < enode; k++)
+	Pe(k) = (sf->P)(ENC(elem, k+1) - 1);
 
-	    // If point lies outside element, ignore the element
-	    if ((si < 0) || (ti < 0) || (si + ti > 1))
-	      continue;
+      // Add contribution to the traction integral after converting to Pa
+      (s->Pf)(node) += 101325*ublas::inner_prod(N, Pe)*Gbw(j);
 
-	    // Compute basis functions at the quadrature point
-	    N(3) = 4.0*si*(1.0-si-ti);
-	    N(4) = 4.0*si*ti;
-	    N(5) = 4.0*ti*(1.0-si-ti);
-	    N(0) = (1.0-si-ti)-N(3)/2.0-N(5)/2.0;
-	    N(1) = si-N(4)/2.0-N(3)/2.0;
-	    N(2) = ti-N(5)/2.0-N(4)/2.0;
+    } // End of loop over Gauss points
 
-	    // Store nodal pressure values for this element
-	    for (int k = 0; k < enode; k++)
-	      Pe(k) = (sf->P)(ENC(elem, k+1) - 1);
-
-	    // Add contribution to the traction integral after converting to Pa
-	    (s->Pf)(node - 1) += 101325*ublas::inner_prod(N, Pe)*Gbw(j);
-
-	    // Stop searching for containing element now that we have found it
-	    break;
-
-	  } // End of loop over elements in fluid domain
-
-	} // End of loop over Gauss points
-
-      } // End of loop over the nodes in the edge
-    }
-
-  } // End of loop over edges
+  } // End of loop over boundary nodes
 
 }
 //------------------------------------------------------------------------------

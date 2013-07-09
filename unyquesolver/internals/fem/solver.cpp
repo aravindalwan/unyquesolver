@@ -119,10 +119,6 @@ void fem::Solver::Init(bp::list nodes, bp::list edges, bp::list elements) {
   s->SetID(1);
   s->SetMesh(nodes, edges, elements);
 
-  // Re-initialize fluid domain DOFs
-  if (sf != NULL)
-    sf->InitDOFs();
-
   if (useNonElast) {
     // Create and initialize Nelast
     if (c->DEBUG) cout<<"Initializing nonlinear mechanics module ... ";
@@ -159,11 +155,17 @@ void fem::Solver::Init(bp::list nodes, bp::list edges, bp::list elements) {
     if (c->DEBUG) cout<<"done"<<endl;
   }
 
+  // Re-initialize fluid domain DOFs
+  if (sf != NULL)
+    sf->InitDOFs();
+
   if (useFluid && fluid != NULL) {
     // fluid will normally be NULL at this point, except when updating physical
     // domain to a new mesh. If it is not null, then update its pointer to the
-    // new physical domain.
+    // new physical domain and store initial gap height within the fluid domain.
     fluid->s = s;
+    fluid->MapPhysicalToFluid();
+    fluid->CompGapHeight();
   }
 
 }
