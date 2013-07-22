@@ -223,7 +223,7 @@ class ParametricSolverMaster(ParametricSolver):
                     except StandardError as e: # Error in postproc function
                         # Log warning and ignore error
                         self._log.warning('Error in post-processing function: '
-                                          + e.strerror)
+                                          + e.message)
                 self._results_log.log(logmanager.REPLICATE,
                                       logmessage, meta_data, extra = meta_data)
 
@@ -253,8 +253,13 @@ class ParametricSolverMaster(ParametricSolver):
                              'tag': tag}
                 logmessage = 'Replicate: %(replicate)3d     Tag: %(tag)s'
                 if postprocessor:
-                    meta_data['result'] = postprocessor(result)
-                    logmessage = logmessage + '     Result: %(result)1.6f'
+                    try:
+                        meta_data['result'] = postprocessor(result)
+                        logmessage = logmessage + '     Result: %(result)1.6f'
+                    except StandardError as e: # Error in postproc function
+                        # Log warning and ignore error
+                        self._log.warning('Error in post-processing function: '
+                                          + e.message)
                 self._results_log.log(logmanager.REPLICATE,
                                       logmessage, meta_data, extra = meta_data)
 
