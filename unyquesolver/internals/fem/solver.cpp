@@ -474,6 +474,9 @@ bp::object fem::Solver::HybridETMDynamic() {
     // Apply sinusoidal force on the right boundary of top electrode
     // nelast->BCvals(1,1) = -1e4*sin(2*4*atan2(1,1)*2e5*c->t);
 
+    // Apply sinusoidal voltage
+    eles->RegAttr(0,1) = sin(2*4*atan2(1,1)*1e5*c->t);
+
     // Perform preprocessing steps
     fluid->PreProcess();
     nelast->PreProcess();
@@ -500,7 +503,9 @@ bp::object fem::Solver::HybridETMDynamic() {
     if (!pulledIn) {
       // rvalue = bp::make_tuple(c->t, nelast->Displacement(-1),
       //  				 fluid->GapHeight(), fluid->Pressure());
-      rvalue = bp::make_tuple(c->t, nelast->DispBoundaryEdge(1, -1));
+      // rvalue = bp::make_tuple(c->t, nelast->DispBoundaryEdge(1, -1));
+      rvalue = bp::make_tuple(c->t, nelast->PotentialEnergy(),
+			      nelast->DampingPower());
     } else {
       rvalue = bp::make_tuple(c->t, bp::object());
     }

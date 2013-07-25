@@ -349,6 +349,7 @@ void NonElast::CompK() {
   Udde = unyque::DVector_zero(2*enode);
   N = unyque::DVector_zero(enode);
   dN = unyque::DMatrix_zero(2, enode);
+  PotEnergy = 0;
 
   // Loop over elements
 
@@ -382,6 +383,9 @@ void NonElast::CompK() {
 	TEcoeff = 0.0;
 
       CompBandS(Ue);
+
+      // Add contribution to the total potential energy
+      PotEnergy += SEdensity*Gw(ip)*detJ;
 
       // Compute the value of [B]'[D][B] at integration point ip
       // -- [BL]'[D][BL]: material part
@@ -595,6 +599,9 @@ void NonElast::CompBandS(unyque::DMatrix &Ue) {
   S(0,1) = D(2,0)*E(0,0)+D(2,1)*E(1,1)+2.0*D(2,2)*E(0,1);
   S(1,0) = S(0,1);
 
+  // Compute strain energy density
+  SEdensity = EM*(S(0,0)*E(0,0)+S(0,1)*E(0,1)+S(1,0)*E(1,0)+S(1,1)*E(1,1));
+
   // Compute Smat
   Smat(0,0) = S(0,0); Smat(0,1) = S(0,1); Smat(0,2) = 0.0; Smat(0,3) = 0.0;
   Smat(1,0) = S(1,0); Smat(1,1) = S(1,1); Smat(1,2) = 0.0; Smat(1,3) = 0.0;
@@ -611,6 +618,9 @@ void NonElast::CompBandS(unyque::DMatrix &Ue) {
 void NonElast::ApplyBC() {
   int bcno;
   fem::FEM_Edge *ed;
+
+  // Set damping power to zero before summing over edges
+  Pdamping = 0;
 
   // Loop over boundary edges - NBCs first
   for (int eid = 0; eid < nbedge; eid++) {
@@ -871,14 +881,15 @@ void NonElast::ApplyFluidPressureBC(fem::FEM_Edge *ed) {
 
   int Gnode, startip, iglobal, jglobal;
   double si, ti, FinvTN, Pf, detJ1D = 0.0;
-  unyque::DMatrix Ecoor, Ke, dN;
-  unyque::DVector N, Pfe, nX(2), nx(2), tx(2), f(2), H(2), RHSe;
+  unyque::DMatrix Ecoor, Ke, dN, Ude;
+  unyque::DVector N, Pfe, Ud(2), nX(2), nx(2), tx(2), f(2), H(2), RHSe;
 
   Ecoor = unyque::DMatrix_zero(enode,2);
   Ke = unyque::DMatrix_zero(2*enode,2*enode);
   N = unyque::DVector_zero(enode);
   dN = unyque::DMatrix_zero(2, enode);
   Pfe = unyque::DVector_zero(enode);
+  Ude = unyque::DMatrix_zero(enode, 2);
   RHSe = unyque::DVector_zero(2*enode);
 
   // Find the x & y coordinates of each node
@@ -887,6 +898,8 @@ void NonElast::ApplyFluidPressureBC(fem::FEM_Edge *ed) {
     Ecoor(i,0) = s->Nodes[Gnode]->x;
     Ecoor(i,1) = s->Nodes[Gnode]->y;
     Pfe(i) = (s->Pf)(Gnode - 1);
+    Ude(i, 0) = (s->Ud)(Gnode-1);
+    Ude(i, 1) = (s->Vd)(Gnode-1);
   }
 
   startip = Genquad*(ed->eid);
@@ -901,6 +914,9 @@ void NonElast::ApplyFluidPressureBC(fem::FEM_Edge *ed) {
 
     // Compute the integrated fluid pressure at this point
     Pf = ublas::inner_prod(N, Pfe);
+
+    // Compute the velocity vector at this point
+    Ud = ublas::prod(N, Ude);
 
     // Find the components of normal & tangential vectors
     nX(0) = cos(ed->normal);
@@ -929,6 +945,9 @@ void NonElast::ApplyFluidPressureBC(fem::FEM_Edge *ed) {
     default:
       if (c->DEBUG) cout<<"Invalid edge ID"<<endl;
     }
+
+    // Add contribution to damping power from this edge
+    Pdamping += Pf*ublas::inner_prod(nX, Ud)*detF*FinvTN*Gew(ip)*detJ1D;
 
     // Create the elemental matrix Ke
     CompBR(N, nX);
@@ -1128,4 +1147,12 @@ pyublas::numpy_vector<double> NonElast::Displacement(int direction) {
       rval(j) = sqrt(pow((s->U)(j),2) + pow((s->V)(j),2));
   }
   return rval;
+}
+//------------------------------------------------------------------------------
+double NonElast::PotentialEnergy() {
+  return PotEnergy;
+}
+//------------------------------------------------------------------------------
+double NonElast::DampingPower() {
+  return Pdamping;
 }

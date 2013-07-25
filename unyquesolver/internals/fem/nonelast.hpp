@@ -29,7 +29,7 @@ public:
   unyque::DMatrix BCvals, BL, BNL, BR0, BR1; //BCvals - b.c. values
   unyque::DMatrix dp, Finv, S, Smat;
   unyque::DVector hatSvec;
-  double detF, detJ, slen, tlen, vlen, TEcoeff;
+  double detF, detJ, slen, tlen, vlen, TEcoeff, SEdensity, PotEnergy, Pdamping;
 
   // Material properties
   double EM, MU, RHO, ALPHA, T_REF;
@@ -80,5 +80,7 @@ public:
   int MaxAbsDispPoint(int direction);
   bp::list DispBoundaryEdge(int bmarker, int direction);
   pyublas::numpy_vector<double> Displacement(int direction);
+  double PotentialEnergy();
+  double DampingPower();
 };
 #endif
