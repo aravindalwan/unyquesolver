@@ -23,6 +23,16 @@ namespace fem {
     FEM_Element(int eid, int region,
 		int n1, int n2, int n3, int n4, int n5, int n6);
   };
+
+  struct FEM_Element_pickle_suite : bp::pickle_suite {
+    static bp::tuple getinitargs(const FEM_Element& e) {
+      return bp::make_tuple(e.id, e.reg, e.node1, e.node2, e.node3, e.node4,
+			    e.node5, e.node6);
+    }
+    static bp::tuple getstate(bp::object o);
+    static void setstate(bp::object o, bp::tuple state);
+    static bool getstate_manages_dict() { return true; }
+  };
   //----------------------------------------------------------------------------
   class FEM_Edge {
   public:
@@ -33,6 +43,16 @@ namespace fem {
     FEM_Edge(int edid, int elementnum, int edgetype, int bm, double norm,
 	     int n1, int n2, int n3);
   };
+
+  struct FEM_Edge_pickle_suite : bp::pickle_suite {
+    static bp::tuple getinitargs(const FEM_Edge& e) {
+      return bp::make_tuple(e.id, e.eno, e.eid, e.bmarker, e.normal,
+			    e.node1, e.node2, e.node3);
+    }
+    static bp::tuple getstate(bp::object o);
+    static void setstate(bp::object o, bp::tuple state);
+    static bool getstate_manages_dict() { return true; }
+  };
   //----------------------------------------------------------------------------
   class FEM_Point {
   public:
@@ -41,6 +61,15 @@ namespace fem {
     int bmarker; // Boundary Marker for each point
     FEM_Point(double ix, double iy);
     FEM_Point(int pid, int bm, double ix, double iy);
+  };
+
+  struct FEM_Point_pickle_suite : bp::pickle_suite {
+    static bp::tuple getinitargs(const FEM_Point& p) {
+      return bp::make_tuple(p.id, p.bmarker, p.x, p.y);
+    }
+    static bp::tuple getstate(bp::object o);
+    static void setstate(bp::object o, bp::tuple state);
+    static bool getstate_manages_dict() { return true; }
   };
   //----------------------------------------------------------------------------
   class FEM_Domain {
@@ -95,7 +124,7 @@ namespace fem {
 
     // BEM electrostatics
     pyublas::numpy_vector<double> BPhi, BdPhidn, SCharge;
-    unyque::DMatrix Ent;
+    pyublas::numpy_matrix<double> Ent;
 
   public:
     FEM_PhysicalDomain();

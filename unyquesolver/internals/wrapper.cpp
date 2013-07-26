@@ -35,6 +35,7 @@ BOOST_PYTHON_MODULE(_internals)
     .def_readwrite("node4", &fem::FEM_Element::node4)
     .def_readwrite("node5", &fem::FEM_Element::node5)
     .def_readwrite("node6", &fem::FEM_Element::node6)
+    .def_pickle(fem::FEM_Element_pickle_suite())
     ;
 
   class_<fem::FEM_Edge>("Edge",
@@ -47,14 +48,15 @@ BOOST_PYTHON_MODULE(_internals)
     .def_readwrite("node1", &fem::FEM_Edge::node1)
     .def_readwrite("node2", &fem::FEM_Edge::node2)
     .def_readwrite("node3", &fem::FEM_Edge::node3)
+    .def_pickle(fem::FEM_Edge_pickle_suite())
     ;
 
-  class_<fem::FEM_Point>("Point",
-			   init<int, int, double, double>())
+  class_<fem::FEM_Point>("Point", init<int, int, double, double>())
     .def_readwrite("id", &fem::FEM_Point::id)
     .def_readwrite("boundary_marker", &fem::FEM_Point::bmarker)
     .def_readwrite("x", &fem::FEM_Point::x)
     .def_readwrite("y", &fem::FEM_Point::y)
+    .def_pickle(fem::FEM_Point_pickle_suite())
     ;
 
   class_<fem::FEM_PhysicalDomain>("PhysicalDomain")
@@ -76,6 +78,7 @@ BOOST_PYTHON_MODULE(_internals)
     .def(pyublas::by_value_ro_member("BPhi", &fem::FEM_PhysicalDomain::BPhi))
     .def(pyublas::by_value_ro_member("BdPhidn", &fem::FEM_PhysicalDomain::BdPhidn))
     .def(pyublas::by_value_ro_member("SCharge", &fem::FEM_PhysicalDomain::SCharge))
+    .def(pyublas::by_value_ro_member("Ent", &fem::FEM_PhysicalDomain::Ent))
     ;
 
   class_<fem::FEM_FluidDomain>("FluidDomain")

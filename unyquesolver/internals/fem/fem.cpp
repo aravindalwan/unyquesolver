@@ -7,11 +7,77 @@ fem::FEM_Element::FEM_Element(int eid, int region,
   node1 = n1; node2 = n2; node3 = n3; node4 = n4; node5 = n5; node6 = n6;
 }
 //------------------------------------------------------------------------------
+bp::tuple fem::FEM_Element_pickle_suite::getstate(bp::object o) {
+  FEM_Element const& e = bp::extract<FEM_Element const&>(o)();
+  return bp::make_tuple(o.attr("__dict__"), e.id, e.reg, e.node1, e.node2,
+			e.node3, e.node4, e.node5, e.node6);
+}
+//------------------------------------------------------------------------------
+void fem::FEM_Element_pickle_suite::setstate(bp::object o, bp::tuple state) {
+
+  FEM_Element& e = bp::extract<FEM_Element&>(o)();
+
+  if (len(state) != 9) {
+    PyErr_SetObject(PyExc_ValueError,
+		    ("expected 9-item tuple in call to __setstate__; got %s"
+		     % state).ptr());
+    bp::throw_error_already_set();
+  }
+
+  // restore the object's __dict__
+  bp::dict d = bp::extract<bp::dict>(o.attr("__dict__"))();
+  d.update(state[0]);
+
+  // restore the internal state of the FEM_Point object
+  e.id = bp::extract<int>(state[1]);
+  e.reg = bp::extract<int>(state[2]);
+  e.node1 = bp::extract<int>(state[3]);
+  e.node2 = bp::extract<int>(state[4]);
+  e.node3 = bp::extract<int>(state[5]);
+  e.node4 = bp::extract<int>(state[6]);
+  e.node5 = bp::extract<int>(state[7]);
+  e.node6 = bp::extract<int>(state[8]);
+
+}
+//------------------------------------------------------------------------------
 fem::FEM_Edge::FEM_Edge(int edid, int elementnum, int edgetype, int bm,
 			double norm, int n1, int n2, int n3) {
   id = edid;
   eno = elementnum; eid = edgetype; bmarker = bm; normal = norm;
   node1 = n1; node2 = n2; node3 = n3;
+}
+//------------------------------------------------------------------------------
+bp::tuple fem::FEM_Edge_pickle_suite::getstate(bp::object o) {
+  FEM_Edge const& e = bp::extract<FEM_Edge const&>(o)();
+  return bp::make_tuple(o.attr("__dict__"), e.id, e.eno, e.eid, e.bmarker,
+			e.normal, e.node1, e.node2, e.node3);
+}
+//------------------------------------------------------------------------------
+void fem::FEM_Edge_pickle_suite::setstate(bp::object o, bp::tuple state) {
+
+  FEM_Edge& e = bp::extract<FEM_Edge&>(o)();
+
+  if (len(state) != 9) {
+    PyErr_SetObject(PyExc_ValueError,
+		    ("expected 9-item tuple in call to __setstate__; got %s"
+		     % state).ptr());
+    bp::throw_error_already_set();
+  }
+
+  // restore the object's __dict__
+  bp::dict d = bp::extract<bp::dict>(o.attr("__dict__"))();
+  d.update(state[0]);
+
+  // restore the internal state of the FEM_Point object
+  e.id = bp::extract<int>(state[1]);
+  e.eno = bp::extract<int>(state[2]);
+  e.eid = bp::extract<int>(state[3]);
+  e.bmarker = bp::extract<int>(state[4]);
+  e.normal = bp::extract<double>(state[5]);
+  e.node1 = bp::extract<int>(state[6]);
+  e.node2 = bp::extract<int>(state[7]);
+  e.node3 = bp::extract<int>(state[8]);
+
 }
 //------------------------------------------------------------------------------
 fem::FEM_Point::FEM_Point(double ix, double iy) {
@@ -20,6 +86,34 @@ fem::FEM_Point::FEM_Point(double ix, double iy) {
 //------------------------------------------------------------------------------
 fem::FEM_Point::FEM_Point(int pid, int bm, double ix, double iy) {
   id = pid; bmarker = bm; x = ix; y = iy;
+}
+//------------------------------------------------------------------------------
+bp::tuple fem::FEM_Point_pickle_suite::getstate(bp::object o) {
+  FEM_Point const& p = bp::extract<FEM_Point const&>(o)();
+  return bp::make_tuple(o.attr("__dict__"), p.id, p.bmarker, p.x, p.y);
+}
+//------------------------------------------------------------------------------
+void fem::FEM_Point_pickle_suite::setstate(bp::object o, bp::tuple state) {
+
+  FEM_Point& p = bp::extract<FEM_Point&>(o)();
+
+  if (len(state) != 5) {
+    PyErr_SetObject(PyExc_ValueError,
+		    ("expected 5-item tuple in call to __setstate__; got %s"
+		     % state).ptr());
+    bp::throw_error_already_set();
+  }
+
+  // restore the object's __dict__
+  bp::dict d = bp::extract<bp::dict>(o.attr("__dict__"))();
+  d.update(state[0]);
+
+  // restore the internal state of the FEM_Point object
+  p.id = bp::extract<int>(state[1]);
+  p.bmarker = bp::extract<int>(state[2]);
+  p.x = bp::extract<double>(state[3]);
+  p.y = bp::extract<double>(state[4]);
+
 }
 //------------------------------------------------------------------------------
 fem::FEM_Domain::FEM_Domain() {
