@@ -94,5 +94,6 @@ BOOST_PYTHON_MODULE(_internals)
     .def_readwrite("t", &fem::FEM_Common::t)
     .def_readwrite("t_stop", &fem::FEM_Common::t_stop)
     .def_readwrite("dt", &fem::FEM_Common::dt)
+    .def_pickle(fem::FEM_Common_pickle_suite())
     ;
 }

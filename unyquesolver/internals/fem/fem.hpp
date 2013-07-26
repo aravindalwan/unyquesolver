@@ -153,5 +153,11 @@ namespace fem {
 
   };
 
+  struct FEM_Common_pickle_suite : bp::pickle_suite {
+    static bp::tuple getstate(bp::object o);
+    static void setstate(bp::object o, bp::tuple state);
+    static bool getstate_manages_dict() { return true; }
+  };
+
 }
 #endif

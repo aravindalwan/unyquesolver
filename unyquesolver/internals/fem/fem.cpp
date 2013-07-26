@@ -160,3 +160,36 @@ fem::FEM_Common::FEM_Common() {
   functions = new Function();
 }
 //------------------------------------------------------------------------------
+bp::tuple fem::FEM_Common_pickle_suite::getstate(bp::object o) {
+  FEM_Common const& c = bp::extract<FEM_Common const&>(o)();
+  return bp::make_tuple(o.attr("__dict__"), c.DEBUG, c.Phi_mult, c.Phi_inf,
+			c.original_gap, c.new_gap, c.t, c.t_stop, c.dt);
+}
+//------------------------------------------------------------------------------
+void fem::FEM_Common_pickle_suite::setstate(bp::object o, bp::tuple state) {
+
+  FEM_Common& c = bp::extract<FEM_Common&>(o)();
+
+  if (len(state) != 9) {
+    PyErr_SetObject(PyExc_ValueError,
+		    ("expected 9-item tuple in call to __setstate__; got %s"
+		     % state).ptr());
+    bp::throw_error_already_set();
+  }
+
+  // restore the object's __dict__
+  bp::dict d = bp::extract<bp::dict>(o.attr("__dict__"))();
+  d.update(state[0]);
+
+  // restore the internal state of the FEM_Common object
+  c.DEBUG = bp::extract<int>(state[1]);
+  c.Phi_mult = bp::extract<double>(state[2]);
+  c.Phi_inf = bp::extract<double>(state[3]);
+  c.original_gap = bp::extract<double>(state[4]);
+  c.new_gap = bp::extract<double>(state[5]);
+  c.t = bp::extract<double>(state[6]);
+  c.t_stop = bp::extract<double>(state[7]);
+  c.dt = bp::extract<double>(state[8]);
+
+}
+//------------------------------------------------------------------------------
