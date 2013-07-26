@@ -4,7 +4,7 @@
 Therm::Therm() {
 }
 //------------------------------------------------------------------------------
-Therm::Therm(fem::FEM_PhysicalDomain *is, FEM_Common *ic) {
+Therm::Therm(fem::FEM_PhysicalDomain *is, fem::FEM_Common *ic) {
   s = is;
   c = ic;
   nelem = is->nelem;

@@ -125,32 +125,33 @@ namespace fem {
     void InitDOFs();
 
   };
+  //------------------------------------------------------------------------------
+  class FEM_Common {
+
+  public:
+    // Switch controlling whether debug output is printed to stdout
+    int DEBUG;
+
+    // Multiplier to convert potential to non-dimensional form
+    double Phi_mult;
+
+    // Potential at infinity for electrostatics
+    double Phi_inf;
+
+    // Original and new values of electrode gap
+    double original_gap, new_gap;
+
+    // Current time, stop time and time-step
+    double t, t_stop, dt;
+
+    // Functions used to describe nonlinear properties
+    Function *functions;
+
+  public:
+    FEM_Common();
+    ~FEM_Common() {};
+
+  };
+
 }
-//------------------------------------------------------------------------------
-class FEM_Common {
-
-public:
-  // Switch controlling whether debug output is printed to stdout
-  int DEBUG;
-
-  // Multiplier to convert potential to non-dimensional form
-  double Phi_mult;
-
-  // Potential at infinity for electrostatics
-  double Phi_inf;
-
-  // Original and new values of electrode gap
-  double original_gap, new_gap;
-
-  // Current time, stop time and time-step
-  double t, t_stop, dt;
-
-  // Functions used to describe nonlinear properties
-  Function *functions;
-
-public:
-  FEM_Common();
-  ~FEM_Common() {};
-
-};
 #endif

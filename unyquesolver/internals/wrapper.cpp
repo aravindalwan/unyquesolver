@@ -17,6 +17,9 @@ BOOST_PYTHON_MODULE(_internals)
     .add_property("fluid_domain",
 		  make_getter(&fem::Solver::sf,
 			      return_value_policy<reference_existing_object>()))
+    .add_property("common_parameters",
+		  make_getter(&fem::Solver::c,
+			      return_value_policy<reference_existing_object>()))
     .def("InitFluid", &fem::Solver::InitFluid)
     .def("Init", &fem::Solver::Init)
     .def("Solve", &fem::Solver::Solve)
@@ -81,5 +84,15 @@ BOOST_PYTHON_MODULE(_internals)
     .def(pyublas::by_value_ro_member("U", &fem::FEM_FluidDomain::U))
     .def(pyublas::by_value_ro_member("H", &fem::FEM_FluidDomain::H))
     .def(pyublas::by_value_ro_member("Hold", &fem::FEM_FluidDomain::Hold))
+    ;
+
+  class_<fem::FEM_Common>("CommonParameters")
+    .def_readwrite("Phi_mult", &fem::FEM_Common::Phi_mult)
+    .def_readwrite("Phi_inf", &fem::FEM_Common::Phi_inf)
+    .def_readwrite("original_gap", &fem::FEM_Common::original_gap)
+    .def_readwrite("new_gap", &fem::FEM_Common::new_gap)
+    .def_readwrite("t", &fem::FEM_Common::t)
+    .def_readwrite("t_stop", &fem::FEM_Common::t_stop)
+    .def_readwrite("dt", &fem::FEM_Common::dt)
     ;
 }

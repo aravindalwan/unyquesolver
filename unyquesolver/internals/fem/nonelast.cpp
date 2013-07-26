@@ -4,7 +4,7 @@
 NonElast::NonElast() {
 }
 //------------------------------------------------------------------------------
-NonElast::NonElast(fem::FEM_PhysicalDomain *is, FEM_Common *ic) {
+NonElast::NonElast(fem::FEM_PhysicalDomain *is, fem::FEM_Common *ic) {
   s = is;
   c = ic;
   nelem = is->nelem;

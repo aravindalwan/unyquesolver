@@ -152,7 +152,7 @@ void fem::FEM_FluidDomain::InitDOFs() {
 
 }
 //------------------------------------------------------------------------------
-FEM_Common::FEM_Common() {
+fem::FEM_Common::FEM_Common() {
   DEBUG = 0;
   Phi_mult = 1; Phi_inf = 0;
   original_gap = new_gap = 2.0;

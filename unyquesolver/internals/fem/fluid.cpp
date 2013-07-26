@@ -5,7 +5,7 @@ Fluid::Fluid() {
 }
 //------------------------------------------------------------------------------
 Fluid::Fluid(fem::FEM_PhysicalDomain *is, fem::FEM_FluidDomain *isf,
-	     FEM_Common *ic) {
+	     fem::FEM_Common *ic) {
   s = is;
   sf = isf;
   c = ic;
