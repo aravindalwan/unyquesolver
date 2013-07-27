@@ -106,6 +106,8 @@ void fem::Solver::InitFluid(bp::list nodes, bp::list edges, bp::list elements) {
     delete fluid;
     fluid = new Fluid(s, sf, c);
     fluid->Init();
+    fluid->MapPhysicalToFluid();
+    fluid->CompGapHeight();
     if (c->DEBUG) cout<<"done"<<endl;
   }
 
