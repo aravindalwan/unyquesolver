@@ -1,4 +1,5 @@
 #include <boost/python.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include <pyublas/numpy.hpp>
 
 #include "solver.hpp"
@@ -25,7 +26,7 @@ BOOST_PYTHON_MODULE(_internals)
     .def("Solve", &fem::Solver::Solve)
     ;
 
-  class_<fem::FEM_Element>("Element",
+  class_<fem::FEM_Element, fem::FEM_Element*>("Element",
 			   init<int, int, int, int, int, int, int, int>())
     .def_readwrite("id", &fem::FEM_Element::id)
     .def_readwrite("region", &fem::FEM_Element::reg)
@@ -38,7 +39,11 @@ BOOST_PYTHON_MODULE(_internals)
     .def_pickle(fem::FEM_Element_pickle_suite())
     ;
 
-  class_<fem::FEM_Edge>("Edge",
+  class_<std::vector<fem::FEM_Element*> >("ElementVec")
+    .def(vector_indexing_suite<std::vector<fem::FEM_Element*> >())
+    ;
+
+  class_<fem::FEM_Edge, fem::FEM_Edge*>("Edge",
 			init<int, int, int, int, double, int, int, int>())
     .def_readwrite("id", &fem::FEM_Edge::id)
     .def_readwrite("element", &fem::FEM_Edge::eno)
@@ -51,7 +56,12 @@ BOOST_PYTHON_MODULE(_internals)
     .def_pickle(fem::FEM_Edge_pickle_suite())
     ;
 
-  class_<fem::FEM_Point>("Point", init<int, int, double, double>())
+  class_<std::vector<fem::FEM_Edge*> >("EdgeVec")
+    .def(vector_indexing_suite<std::vector<fem::FEM_Edge*> >())
+    ;
+
+  class_<fem::FEM_Point, fem::FEM_Point*>("Point",
+					  init<int, int, double, double>())
     .def_readwrite("id", &fem::FEM_Point::id)
     .def_readwrite("boundary_marker", &fem::FEM_Point::bmarker)
     .def_readwrite("x", &fem::FEM_Point::x)
@@ -59,7 +69,21 @@ BOOST_PYTHON_MODULE(_internals)
     .def_pickle(fem::FEM_Point_pickle_suite())
     ;
 
-  class_<fem::FEM_PhysicalDomain>("PhysicalDomain")
+  class_<std::vector<fem::FEM_Point*> >("PointVec")
+    .def(vector_indexing_suite<std::vector<fem::FEM_Point*> >())
+    ;
+
+  class_<fem::FEM_Domain, boost::noncopyable>("Domain", no_init)
+    .def_readwrite("Nodes", &fem::FEM_Domain::Nodes)
+    .def_readwrite("RefNodes", &fem::FEM_Domain::RefNodes)
+    .def_readwrite("BNodes", &fem::FEM_Domain::BNodes)
+    .def_readwrite("Elements", &fem::FEM_Domain::Elements)
+    .def_readwrite("Edges", &fem::FEM_Domain::Edges)
+    .def_readwrite("BEdges", &fem::FEM_Domain::BEdges)
+    .def_readwrite("id", &fem::FEM_Domain::id)
+    ;
+
+  class_<fem::FEM_PhysicalDomain, bases<fem::FEM_Domain> >("PhysicalDomain")
     .def(pyublas::by_value_ro_member("U", &fem::FEM_PhysicalDomain::U))
     .def(pyublas::by_value_ro_member("Uold", &fem::FEM_PhysicalDomain::Uold))
     .def(pyublas::by_value_ro_member("Ud", &fem::FEM_PhysicalDomain::Ud))
@@ -81,7 +105,7 @@ BOOST_PYTHON_MODULE(_internals)
     .def(pyublas::by_value_ro_member("Ent", &fem::FEM_PhysicalDomain::Ent))
     ;
 
-  class_<fem::FEM_FluidDomain>("FluidDomain")
+  class_<fem::FEM_FluidDomain, bases<fem::FEM_Domain> >("FluidDomain")
     .def(pyublas::by_value_ro_member("P", &fem::FEM_FluidDomain::P))
     .def(pyublas::by_value_ro_member("Pold", &fem::FEM_FluidDomain::Pold))
     .def(pyublas::by_value_ro_member("U", &fem::FEM_FluidDomain::U))
