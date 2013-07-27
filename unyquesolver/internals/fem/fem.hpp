@@ -134,6 +134,12 @@ namespace fem {
     void InitDOFs();
 
   };
+
+  struct FEM_PhysicalDomain_pickle_suite : bp::pickle_suite {
+    static bp::tuple getstate(bp::object o);
+    static void setstate(bp::object o, bp::tuple state);
+    static bool getstate_manages_dict() { return true; }
+  };
   //------------------------------------------------------------------------------
   class FEM_FluidDomain: public FEM_Domain {
   public:
@@ -153,6 +159,12 @@ namespace fem {
     // Initialization
     void InitDOFs();
 
+  };
+
+  struct FEM_FluidDomain_pickle_suite : bp::pickle_suite {
+    static bp::tuple getstate(bp::object o);
+    static void setstate(bp::object o, bp::tuple state);
+    static bool getstate_manages_dict() { return true; }
   };
   //------------------------------------------------------------------------------
   class FEM_Common {

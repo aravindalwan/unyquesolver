@@ -231,6 +231,75 @@ void fem::FEM_PhysicalDomain::InitDOFs() {
 
 }
 //------------------------------------------------------------------------------
+bp::tuple fem::FEM_PhysicalDomain_pickle_suite::getstate(bp::object o) {
+
+  bp::list nodes, edges, elements;
+  bp::tuple u, v;
+
+  FEM_PhysicalDomain const& p = bp::extract<FEM_PhysicalDomain const&>(o)();
+  for (int i = 1; i <= p.nnode; i++)
+    nodes.append(p.Nodes[i]);
+  for (int i = 1; i <= p.nedge; i++)
+    edges.append(p.Edges[i]);
+  for (int i = 1; i <= p.nelem; i++)
+    elements.append(p.Elements[i]);
+
+  u = bp::make_tuple(p.U, p.Uold, p.Ud, p.Udold, p.Udd, p.Uddold);
+  v = bp::make_tuple(p.V, p.Vold, p.Vd, p.Vdold, p.Vdd, p.Vddold);
+
+  return bp::make_tuple(o.attr("__dict__"), nodes, edges, elements, p.id,
+			u, v, p.T, p.Told, p.Phi, p.BPhi, p.BdPhidn, p.SCharge,
+			p.Ent);
+}
+//------------------------------------------------------------------------------
+void fem::FEM_PhysicalDomain_pickle_suite::setstate(bp::object o, bp::tuple state) {
+
+  bp::tuple u, v;
+
+  FEM_PhysicalDomain& p = bp::extract<FEM_PhysicalDomain&>(o)();
+
+  if (len(state) != 14) {
+    PyErr_SetObject(PyExc_ValueError,
+		    ("expected 14-item tuple in call to __setstate__; got %s"
+		     % state).ptr());
+    bp::throw_error_already_set();
+  }
+
+  // restore the object's __dict__
+  bp::dict d = bp::extract<bp::dict>(o.attr("__dict__"))();
+  d.update(state[0]);
+
+  // restore the internal state of the FEM_FluidDomain object
+  p.SetMesh(bp::extract<bp::list>(state[1]), bp::extract<bp::list>(state[2]),
+  	    bp::extract<bp::list>(state[3]));
+  p.id = bp::extract<int>(state[4]);
+
+  u = bp::extract< bp::tuple >(state[5]);
+  p.U = bp::extract< pyublas::numpy_vector<double> >(u[0]);
+  p.Uold = bp::extract< pyublas::numpy_vector<double> >(u[1]);
+  p.Ud = bp::extract< pyublas::numpy_vector<double> >(u[2]);
+  p.Udold = bp::extract< pyublas::numpy_vector<double> >(u[3]);
+  p.Udd = bp::extract< pyublas::numpy_vector<double> >(u[4]);
+  p.Uddold = bp::extract< pyublas::numpy_vector<double> >(u[5]);
+
+  v = bp::extract< bp::tuple >(state[6]);
+  p.V = bp::extract< pyublas::numpy_vector<double> >(v[0]);
+  p.Vold = bp::extract< pyublas::numpy_vector<double> >(v[1]);
+  p.Vd = bp::extract< pyublas::numpy_vector<double> >(v[2]);
+  p.Vdold = bp::extract< pyublas::numpy_vector<double> >(v[3]);
+  p.Vdd = bp::extract< pyublas::numpy_vector<double> >(v[4]);
+  p.Vddold = bp::extract< pyublas::numpy_vector<double> >(v[5]);
+
+  p.T = bp::extract< pyublas::numpy_vector<double> >(state[7]);
+  p.Told = bp::extract< pyublas::numpy_vector<double> >(state[8]);
+  p.Phi = bp::extract< pyublas::numpy_vector<double> >(state[9]);
+  p.BPhi = bp::extract< pyublas::numpy_vector<double> >(state[10]);
+  p.BdPhidn = bp::extract< pyublas::numpy_vector<double> >(state[11]);
+  p.SCharge = bp::extract< pyublas::numpy_vector<double> >(state[12]);
+  p.Ent = bp::extract< pyublas::numpy_matrix<double> >(state[13]);
+
+}
+//------------------------------------------------------------------------------
 fem::FEM_FluidDomain::FEM_FluidDomain() : fem::FEM_Domain() {
 }
 //------------------------------------------------------------------------------
@@ -243,6 +312,49 @@ void fem::FEM_FluidDomain::InitDOFs() {
 
   H = unyque::DVector_scalar(nnode, 2.0);
   Hold = unyque::DVector_scalar(nnode, 2.0);
+
+}
+//------------------------------------------------------------------------------
+bp::tuple fem::FEM_FluidDomain_pickle_suite::getstate(bp::object o) {
+
+  bp::list nodes, edges, elements;
+
+  FEM_FluidDomain const& p = bp::extract<FEM_FluidDomain const&>(o)();
+  for (int i = 1; i <= p.nnode; i++)
+    nodes.append(p.Nodes[i]);
+  for (int i = 1; i <= p.nedge; i++)
+    edges.append(p.Edges[i]);
+  for (int i = 1; i <= p.nelem; i++)
+    elements.append(p.Elements[i]);
+
+  return bp::make_tuple(o.attr("__dict__"), nodes, edges, elements, p.id,
+			p.P, p.Pold, p.U, p.H, p.Hold);
+}
+//------------------------------------------------------------------------------
+void fem::FEM_FluidDomain_pickle_suite::setstate(bp::object o, bp::tuple state) {
+
+  FEM_FluidDomain& p = bp::extract<FEM_FluidDomain&>(o)();
+
+  if (len(state) != 10) {
+    PyErr_SetObject(PyExc_ValueError,
+		    ("expected 10-item tuple in call to __setstate__; got %s"
+		     % state).ptr());
+    bp::throw_error_already_set();
+  }
+
+  // restore the object's __dict__
+  bp::dict d = bp::extract<bp::dict>(o.attr("__dict__"))();
+  d.update(state[0]);
+
+  // restore the internal state of the FEM_FluidDomain object
+  p.SetMesh(bp::extract<bp::list>(state[1]), bp::extract<bp::list>(state[2]),
+  	    bp::extract<bp::list>(state[3]));
+  p.id = bp::extract<int>(state[4]);
+  p.P = bp::extract< pyublas::numpy_vector<double> >(state[5]);
+  p.Pold = bp::extract< pyublas::numpy_vector<double> >(state[6]);
+  p.U = bp::extract< pyublas::numpy_vector<double> >(state[7]);
+  p.H = bp::extract< pyublas::numpy_vector<double> >(state[8]);
+  p.Hold = bp::extract< pyublas::numpy_vector<double> >(state[9]);
 
 }
 //------------------------------------------------------------------------------

@@ -103,6 +103,7 @@ BOOST_PYTHON_MODULE(_internals)
     .def(pyublas::by_value_ro_member("BdPhidn", &fem::FEM_PhysicalDomain::BdPhidn))
     .def(pyublas::by_value_ro_member("SCharge", &fem::FEM_PhysicalDomain::SCharge))
     .def(pyublas::by_value_ro_member("Ent", &fem::FEM_PhysicalDomain::Ent))
+    .def_pickle(fem::FEM_PhysicalDomain_pickle_suite())
     ;
 
   class_<fem::FEM_FluidDomain, bases<fem::FEM_Domain> >("FluidDomain")
@@ -111,6 +112,7 @@ BOOST_PYTHON_MODULE(_internals)
     .def(pyublas::by_value_ro_member("U", &fem::FEM_FluidDomain::U))
     .def(pyublas::by_value_ro_member("H", &fem::FEM_FluidDomain::H))
     .def(pyublas::by_value_ro_member("Hold", &fem::FEM_FluidDomain::Hold))
+    .def_pickle(fem::FEM_FluidDomain_pickle_suite())
     ;
 
   class_<fem::FEM_Common>("CommonParameters")
