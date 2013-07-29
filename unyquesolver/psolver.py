@@ -70,7 +70,7 @@ class ParametricSolver(object):
 
         # Initialize physical domain on which elasticity PDE is solved
         self.pdomain = Domain(*self.domain_parameters[0])
-        self._solver.Init(self.pdomain.nodes, self.pdomain.edges,
+        self._solver.InitPhysical(self.pdomain.nodes, self.pdomain.edges,
                           self.pdomain.elements)
 
         if len(self.domain_parameters) > 1:
@@ -78,6 +78,9 @@ class ParametricSolver(object):
             self.fdomain = Domain(*self.domain_parameters[1])
             self._solver.InitFluid(self.fdomain.nodes, self.fdomain.edges,
                           self.fdomain.elements)
+
+        # Initialize solver modules
+        self._solver.Init();
 
     def _get_solution(self, pset):
         '''Compute the solution for the given parameter set.
@@ -97,8 +100,9 @@ class ParametricSolver(object):
             self.pdomain.move_boundary(parameter_set[svb_index])
 
             # Re-initialize solver for the new physical domain
-            self._solver.Init(self.pdomain.nodes, self.pdomain.edges,
-                          self.pdomain.elements)
+            self._solver.InitPhysical(self.pdomain.nodes, self.pdomain.edges,
+                                      self.pdomain.elements)
+            self._solver.Init();
 
             # Remove the spatial variation function from parameter set before
             # calling the solver to compute the solution

@@ -92,6 +92,21 @@ fem::Solver::~Solver() {
 
 }
 //------------------------------------------------------------------------------
+void fem::Solver::InitPhysical(bp::list nodes, bp::list edges,
+			       bp::list elements) {
+
+  // Initialize physical domain object using nodes, edges and elements data
+  delete s;
+  s = new FEM_PhysicalDomain();
+  s->SetID(1);
+  s->SetMesh(nodes, edges, elements);
+
+  // Re-initialize fluid domain DOFs
+  if (sf != NULL)
+    sf->InitDOFs();
+
+}
+//------------------------------------------------------------------------------
 void fem::Solver::InitFluid(bp::list nodes, bp::list edges, bp::list elements) {
 
   // Initialize fluid domain object using nodes, edges and elements data
@@ -100,26 +115,9 @@ void fem::Solver::InitFluid(bp::list nodes, bp::list edges, bp::list elements) {
   sf->SetID(0);
   sf->SetMesh(nodes, edges, elements);
 
-  if (useFluid) {
-    // Create and initialize Fluid
-    if (c->DEBUG) cout<<"Initializing fluid damping module ... ";
-    delete fluid;
-    fluid = new Fluid(s, sf, c);
-    fluid->Init();
-    fluid->MapPhysicalToFluid();
-    fluid->CompGapHeight();
-    if (c->DEBUG) cout<<"done"<<endl;
-  }
-
 }
 //------------------------------------------------------------------------------
-void fem::Solver::Init(bp::list nodes, bp::list edges, bp::list elements) {
-
-  // Initialize physical domain object using nodes, edges and elements data
-  delete s;
-  s = new FEM_PhysicalDomain();
-  s->SetID(1);
-  s->SetMesh(nodes, edges, elements);
+void fem::Solver::Init() {
 
   if (useNonElast) {
     // Create and initialize Nelast
@@ -157,17 +155,15 @@ void fem::Solver::Init(bp::list nodes, bp::list edges, bp::list elements) {
     if (c->DEBUG) cout<<"done"<<endl;
   }
 
-  // Re-initialize fluid domain DOFs
-  if (sf != NULL)
-    sf->InitDOFs();
-
-  if (useFluid && fluid != NULL) {
-    // fluid will normally be NULL at this point, except when updating physical
-    // domain to a new mesh. If it is not null, then update its pointer to the
-    // new physical domain and store initial gap height within the fluid domain.
-    fluid->s = s;
+  if (useFluid) {
+    // Create and initialize Fluid
+    if (c->DEBUG) cout<<"Initializing fluid damping module ... ";
+    delete fluid;
+    fluid = new Fluid(s, sf, c);
+    fluid->Init();
     fluid->MapPhysicalToFluid();
     fluid->CompGapHeight();
+    if (c->DEBUG) cout<<"done"<<endl;
   }
 
 }

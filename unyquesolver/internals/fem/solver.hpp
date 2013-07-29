@@ -40,8 +40,9 @@ namespace fem {
     Solver(int analysisType, bp::list pType);
     ~Solver();
 
+    void InitPhysical(bp::list nodes, bp::list edges, bp::list elements);
     void InitFluid(bp::list nodes, bp::list edges, bp::list elements);
-    void Init(bp::list nodes, bp::list edges, bp::list elements);
+    void Init();
     bp::object Solve(bp::list params);
 
     FEM_Common *c;
