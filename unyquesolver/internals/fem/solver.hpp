@@ -3,6 +3,7 @@
 
 #include <boost/python.hpp>
 #include <boost/python/list.hpp>
+#include <boost/shared_ptr.hpp>
 #include "fem.hpp"
 #include "nonelast.hpp"
 #include "therm.hpp"
@@ -43,22 +44,25 @@ namespace fem {
     void InitPhysical(bp::list nodes, bp::list edges, bp::list elements);
     void InitFluid(bp::list nodes, bp::list edges, bp::list elements);
     void Init();
+    void Restore(boost::shared_ptr<FEM_Common> ic,
+		 boost::shared_ptr<FEM_PhysicalDomain> is,
+		 boost::shared_ptr<FEM_FluidDomain> isf);
     bp::object Solve(bp::list params);
 
-    FEM_Common *c;
-    FEM_PhysicalDomain *s;
-    FEM_FluidDomain *sf;
+    boost::shared_ptr<FEM_Common> c;
+    boost::shared_ptr<FEM_PhysicalDomain> s;
+    boost::shared_ptr<FEM_FluidDomain> sf;
 
   private:
 
     bool useNonElast, useTherm, useElec, useElEs, useFluid;
     int nParams, *paramType;
 
-    NonElast *nelast;
-    Therm *therm;
-    Elec *elec;
-    ElEs *eles;
-    Fluid *fluid;
+    boost::shared_ptr<NonElast> nelast;
+    boost::shared_ptr<Therm> therm;
+    boost::shared_ptr<Elec> elec;
+    boost::shared_ptr<ElEs> eles;
+    boost::shared_ptr<Fluid> fluid;
 
     bp::object (Solver::*analysis)();
 

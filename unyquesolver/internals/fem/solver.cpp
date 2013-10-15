@@ -2,16 +2,16 @@
 
 fem::Solver::Solver(int analysisType, bp::list pType) {
 
-  c = new FEM_Common();
-  s = NULL;
-  sf = NULL;
+  c = boost::shared_ptr<FEM_Common>(new FEM_Common());
+  s.reset();
+  sf.reset();
 
   useNonElast = useTherm = useElec = useElEs = useFluid = false;
-  nelast = NULL;
-  therm = NULL;
-  elec = NULL;
-  eles = NULL;
-  fluid = NULL;
+  nelast.reset();
+  therm.reset();
+  elec.reset();
+  eles.reset();
+  fluid.reset();
 
   switch(analysisType) {
   case MECHANICS:
@@ -74,20 +74,6 @@ fem::Solver::Solver(int analysisType, bp::list pType) {
 //------------------------------------------------------------------------------
 fem::Solver::~Solver() {
 
-  if (useNonElast)
-    delete nelast;
-  if (useTherm)
-    delete therm;
-  if (useElec)
-    delete elec;
-  if (useElEs)
-    delete eles;
-  if (useFluid)
-    delete fluid;
-
-  delete c;
-  delete sf;
-  delete s;
   delete paramType;
 
 }
@@ -96,8 +82,7 @@ void fem::Solver::InitPhysical(bp::list nodes, bp::list edges,
 			       bp::list elements) {
 
   // Initialize physical domain object using nodes, edges and elements data
-  delete s;
-  s = new FEM_PhysicalDomain();
+  s = boost::shared_ptr<FEM_PhysicalDomain>(new FEM_PhysicalDomain());
   s->SetID(1);
   s->SetMesh(nodes, edges, elements);
 
@@ -110,8 +95,7 @@ void fem::Solver::InitPhysical(bp::list nodes, bp::list edges,
 void fem::Solver::InitFluid(bp::list nodes, bp::list edges, bp::list elements) {
 
   // Initialize fluid domain object using nodes, edges and elements data
-  delete sf;
-  sf = new FEM_FluidDomain();
+  sf = boost::shared_ptr<FEM_FluidDomain>(new FEM_FluidDomain());
   sf->SetID(0);
   sf->SetMesh(nodes, edges, elements);
 
@@ -122,8 +106,7 @@ void fem::Solver::Init() {
   if (useNonElast) {
     // Create and initialize Nelast
     if (c->DEBUG) cout<<"Initializing nonlinear mechanics module ... ";
-    delete nelast;
-    nelast = new NonElast(s, c);
+    nelast = boost::shared_ptr<NonElast>(new NonElast(s, c));
     nelast->Init();
     if (c->DEBUG) cout<<"done"<<endl;
   }
@@ -131,8 +114,7 @@ void fem::Solver::Init() {
   if (useTherm) {
     // Create and initialize Thermal
     if (c->DEBUG) cout<<"Initializing thermal module ... ";
-    delete therm;
-    therm = new Therm(s, c);
+    therm = boost::shared_ptr<Therm>(new Therm(s.get(), c.get()));
     therm->Init();
     if (c->DEBUG) cout<<"done"<<endl;
   }
@@ -140,8 +122,7 @@ void fem::Solver::Init() {
   if (useElec) {
     // Create and initialize Electrical
     if (c->DEBUG) cout<<"Initializing electrical module ... ";
-    delete elec;
-    elec = new Elec(s, c);
+    elec = boost::shared_ptr<Elec>(new Elec(s.get(), c.get()));
     elec->Init();
     if (c->DEBUG) cout<<"done"<<endl;
   }
@@ -149,8 +130,7 @@ void fem::Solver::Init() {
   if (useElEs) {
     // Create and initialize ElEs
     if (c->DEBUG) cout<<"Initializing hybrid electrostatics module ... ";
-    delete eles;
-    eles = new ElEs(s, c);
+    eles = boost::shared_ptr<ElEs>(new ElEs(s.get(), c.get()));
     eles->Init();
     if (c->DEBUG) cout<<"done"<<endl;
   }
@@ -158,13 +138,23 @@ void fem::Solver::Init() {
   if (useFluid) {
     // Create and initialize Fluid
     if (c->DEBUG) cout<<"Initializing fluid damping module ... ";
-    delete fluid;
-    fluid = new Fluid(s, sf, c);
+    fluid = boost::shared_ptr<Fluid>(new Fluid(s.get(), sf.get(), c.get()));
     fluid->Init();
     fluid->MapPhysicalToFluid();
     fluid->CompGapHeight();
     if (c->DEBUG) cout<<"done"<<endl;
   }
+
+}
+//------------------------------------------------------------------------------
+void fem::Solver::Restore(boost::shared_ptr<FEM_Common> ic,
+			  boost::shared_ptr<FEM_PhysicalDomain> is,
+			  boost::shared_ptr<FEM_FluidDomain> isf) {
+
+  c = ic;
+  s = is;
+  sf = isf;
+  Init();
 
 }
 //------------------------------------------------------------------------------
@@ -473,9 +463,9 @@ bp::object fem::Solver::HybridETMDynamic() {
 
   oldU = unyque::DVector_zero(s->nnode); oldV = unyque::DVector_zero(s->nnode);
 
-  c->t = 0;
+  c->t += c->dt;
 
-  while (c->t <= c->t_stop) {
+  //  while (c->t <= c->t_stop) {
 
     prevErr = 1e6; pulledIn = false;
 
@@ -512,7 +502,7 @@ bp::object fem::Solver::HybridETMDynamic() {
       disp = -c->new_gap;
       s->InitDOFs();
       sf->InitDOFs();
-      break;
+      // break;
     }
 
     // rvalue.append(bp::make_tuple(c->t, nelast->Displacement(-1),
@@ -521,9 +511,7 @@ bp::object fem::Solver::HybridETMDynamic() {
 
     //cout << "\rTime: " << c->t << " End: " << c->t_stop << " " << flush;
 
-    c->t += c->dt;
-
-  }
+    //  }
 
   //cout << endl;
 
