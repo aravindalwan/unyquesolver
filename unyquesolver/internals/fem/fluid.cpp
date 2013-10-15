@@ -4,8 +4,9 @@
 Fluid::Fluid() {
 }
 //------------------------------------------------------------------------------
-Fluid::Fluid(fem::FEM_PhysicalDomain *is, fem::FEM_FluidDomain *isf,
-	     fem::FEM_Common *ic) {
+Fluid::Fluid(boost::shared_ptr<fem::FEM_PhysicalDomain> is,
+	     boost::shared_ptr<fem::FEM_FluidDomain> isf,
+	     boost::shared_ptr<fem::FEM_Common> ic) {
   s = is;
   sf = isf;
   c = ic;

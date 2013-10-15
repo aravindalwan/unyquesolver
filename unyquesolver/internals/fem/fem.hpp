@@ -3,6 +3,7 @@
 
 #include <boost/python.hpp> // Python requirement: this has to be included first
 #include <boost/python/list.hpp>
+#include <boost/shared_ptr.hpp>
 #include <vector>
 #include <fstream>
 #include <pyublas/numpy.hpp>

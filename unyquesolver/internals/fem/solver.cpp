@@ -114,7 +114,7 @@ void fem::Solver::Init() {
   if (useTherm) {
     // Create and initialize Thermal
     if (c->DEBUG) cout<<"Initializing thermal module ... ";
-    therm = boost::shared_ptr<Therm>(new Therm(s.get(), c.get()));
+    therm = boost::shared_ptr<Therm>(new Therm(s, c));
     therm->Init();
     if (c->DEBUG) cout<<"done"<<endl;
   }
@@ -122,7 +122,7 @@ void fem::Solver::Init() {
   if (useElec) {
     // Create and initialize Electrical
     if (c->DEBUG) cout<<"Initializing electrical module ... ";
-    elec = boost::shared_ptr<Elec>(new Elec(s.get(), c.get()));
+    elec = boost::shared_ptr<Elec>(new Elec(s, c));
     elec->Init();
     if (c->DEBUG) cout<<"done"<<endl;
   }
@@ -130,7 +130,7 @@ void fem::Solver::Init() {
   if (useElEs) {
     // Create and initialize ElEs
     if (c->DEBUG) cout<<"Initializing hybrid electrostatics module ... ";
-    eles = boost::shared_ptr<ElEs>(new ElEs(s.get(), c.get()));
+    eles = boost::shared_ptr<ElEs>(new ElEs(s, c));
     eles->Init();
     if (c->DEBUG) cout<<"done"<<endl;
   }
@@ -138,7 +138,7 @@ void fem::Solver::Init() {
   if (useFluid) {
     // Create and initialize Fluid
     if (c->DEBUG) cout<<"Initializing fluid damping module ... ";
-    fluid = boost::shared_ptr<Fluid>(new Fluid(s.get(), sf.get(), c.get()));
+    fluid = boost::shared_ptr<Fluid>(new Fluid(s, sf, c));
     fluid->Init();
     fluid->MapPhysicalToFluid();
     fluid->CompGapHeight();

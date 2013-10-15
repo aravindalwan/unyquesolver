@@ -4,7 +4,8 @@
 ElEs::ElEs() {
 }
 //------------------------------------------------------------------------------
-ElEs::ElEs(fem::FEM_PhysicalDomain *is, fem::FEM_Common *ic) {
+ElEs::ElEs(boost::shared_ptr<fem::FEM_PhysicalDomain> is,
+	   boost::shared_ptr<fem::FEM_Common> ic) {
   s = is;
   c = ic;
   nelem = is->nelem;

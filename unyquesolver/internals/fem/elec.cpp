@@ -4,7 +4,8 @@
 Elec::Elec() {
 }
 //------------------------------------------------------------------------------
-Elec::Elec(fem::FEM_PhysicalDomain *is, fem::FEM_Common *ic) {
+Elec::Elec(boost::shared_ptr<fem::FEM_PhysicalDomain> is,
+	   boost::shared_ptr<fem::FEM_Common> ic) {
   s = is;
   c = ic;
   nelem = is->nelem;

@@ -9,8 +9,8 @@
 
 class NonElast {
 public:
-  fem::FEM_PhysicalDomain *s;
-  fem::FEM_Common *c;
+  boost::shared_ptr<fem::FEM_PhysicalDomain> s;
+  boost::shared_ptr<fem::FEM_Common> c;
   unyque::SparseMatrix K;
   unyque::DVector RHS, dU;
   unyque::IMatrix ENC;
@@ -46,7 +46,8 @@ public:
 
   // Constructors
   NonElast();
-  NonElast(fem::FEM_PhysicalDomain *is, fem::FEM_Common *ic);
+  NonElast(boost::shared_ptr<fem::FEM_PhysicalDomain> is,
+	   boost::shared_ptr<fem::FEM_Common> ic);
 
   // Global initialization
   void GenerateENC();

@@ -8,9 +8,9 @@
 class Fluid {
 
 public:
-  fem::FEM_PhysicalDomain *s;
-  fem::FEM_FluidDomain *sf;
-  fem::FEM_Common *c;
+  boost::shared_ptr<fem::FEM_PhysicalDomain> s;
+  boost::shared_ptr<fem::FEM_FluidDomain> sf;
+  boost::shared_ptr<fem::FEM_Common> c;
   unyque::SparseMatrix K;
   unyque::DVector RHS, dU;
   unyque::IMatrix ENC;
@@ -45,7 +45,9 @@ public:
 
   // Constructors
   Fluid();
-  Fluid(fem::FEM_PhysicalDomain *is, fem::FEM_FluidDomain *isf, fem::FEM_Common *ic);
+  Fluid(boost::shared_ptr<fem::FEM_PhysicalDomain> is,
+	boost::shared_ptr<fem::FEM_FluidDomain> isf,
+	boost::shared_ptr<fem::FEM_Common> ic);
 
   // Global initialization
   void GenerateENC();

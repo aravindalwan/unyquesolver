@@ -4,7 +4,8 @@
 NonElast::NonElast() {
 }
 //------------------------------------------------------------------------------
-NonElast::NonElast(fem::FEM_PhysicalDomain *is, fem::FEM_Common *ic) {
+NonElast::NonElast(boost::shared_ptr<fem::FEM_PhysicalDomain> is,
+		   boost::shared_ptr<fem::FEM_Common> ic) {
   s = is;
   c = ic;
   nelem = is->nelem;
