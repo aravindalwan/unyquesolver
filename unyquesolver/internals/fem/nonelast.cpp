@@ -270,10 +270,7 @@ void NonElast::SolveStatic() {
   if (c->DEBUG) PrintResults();
 }
 //------------------------------------------------------------------------------
-void NonElast::SolveDynamic(double tn, double dtn) {
-  int iter = 0;
-  double err, eps = 1e-10;
-  t = tn, dt = dtn;
+void NonElast::PreProcess() {
 
   // Store values from previous time step
   for (int i = 0; i < nnode; i++) {
@@ -284,6 +281,13 @@ void NonElast::SolveDynamic(double tn, double dtn) {
     (s->Uddold)(i) = (s->Udd)(i);
     (s->Vddold)(i) = (s->Vdd)(i);
   }
+
+}
+//------------------------------------------------------------------------------
+void NonElast::SolveDynamic(double tn, double dtn) {
+  int iter = 0;
+  double err, eps = 1e-10;
+  t = tn, dt = dtn;
 
   ApplyInhomogeneousDBC();
   do {

@@ -55,6 +55,7 @@ public:
 
   // Preperation of global matrices and solving
   void SolveStatic();
+  void PreProcess();
   void SolveDynamic(double tn, double dtn);
   void ApplyInhomogeneousDBC();
   void CompK();

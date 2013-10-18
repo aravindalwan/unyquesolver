@@ -486,6 +486,7 @@ bp::object fem::Solver::HybridETMDynamic() {
 
     // Perform preprocessing steps
     fluid->PreProcess();
+    nelast->PreProcess();
 
     do {
 
@@ -496,7 +497,6 @@ bp::object fem::Solver::HybridETMDynamic() {
 
       err = max(ublas::norm_inf((s->U)-oldU), ublas::norm_inf((s->V)-oldV));
       oldU = (s->U); oldV = (s->V);
-      err = 0;
 
       if ((err > prevErr) || (ublas::norm_inf(s->V) > c->new_gap)) {
 	pulledIn = true;
