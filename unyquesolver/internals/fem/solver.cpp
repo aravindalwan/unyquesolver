@@ -455,17 +455,16 @@ bp::object fem::Solver::HybridETMPullin() {
 bp::object fem::Solver::HybridETMDynamic() {
 
   // Solve the dynamic hybrid electrothermomechanical actuation problem
-  bp::list rvalue;
+  bp::tuple rvalue;
   unyque::DVector oldU, oldV;
-  double err, prevErr, eps = 1e-8, disp;
-  FEM_Point *maxPoint = NULL;
+  double err, prevErr, eps = 1e-4;
   bool pulledIn;
 
   oldU = unyque::DVector_zero(s->nnode); oldV = unyque::DVector_zero(s->nnode);
 
   c->t += c->dt;
 
-  //  while (c->t <= c->t_stop) {
+  if (c->t <= c->t_stop) {
 
     prevErr = 1e6; pulledIn = false;
 
@@ -496,24 +495,22 @@ bp::object fem::Solver::HybridETMDynamic() {
     } while (err > eps);
 
     if (!pulledIn) {
-      maxPoint = s->Nodes[nelast->MaxAbsDispPoint(-1)];
-      disp = (s->V)(maxPoint->id - 1);
+      // rvalue = bp::make_tuple(c->t, nelast->Displacement(-1),
+      //  				 fluid->GapHeight(), fluid->Pressure());
+      rvalue = bp::make_tuple(c->t, nelast->DispBoundaryEdge(1, -1));
     } else {
-      disp = -c->new_gap;
       s->InitDOFs();
       sf->InitDOFs();
-      // break;
+      rvalue = bp::make_tuple(c->t, bp::object());
     }
-
-    // rvalue.append(bp::make_tuple(c->t, nelast->Displacement(-1),
-    //  				 fluid->GapHeight(), fluid->Pressure()));
-    rvalue.append(bp::make_tuple(c->t, nelast->DispBoundaryEdge(1, -1)));
 
     //cout << "\rTime: " << c->t << " End: " << c->t_stop << " " << flush;
 
-    //  }
+  } else {
 
-  //cout << endl;
+    rvalue = bp::make_tuple(c->t, bp::object());
+
+  }
 
   return rvalue;
 

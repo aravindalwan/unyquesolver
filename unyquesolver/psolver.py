@@ -106,16 +106,45 @@ class ParametricSolver(object):
 
             # Remove the spatial variation function from parameter set before
             # calling the solver to compute the solution
-            rvalue = self._solver.Solve(
+            rvalue = self._run_solver(
                 parameter_set[:svb_index] + parameter_set[(svb_index+1):])
 
         except ValueError:
 
             # SPATIALLY_VARYING_BOUNDARY is not one of the parameters, so call
             # the solver on the entire parameter set
-            rvalue = self._solver.Solve(parameter_set)
+            rvalue = self._run_solver(parameter_set)
 
         return rvalue
+
+    def _run_solver(self, pset):
+        '''Run solver on given parameter set. If this involves a dynamic
+        analysis, then keep running the solver until it returns None as the
+        result for some time-step.
+        '''
+
+        # Check whether a dynamic analysis is to be performed
+        if STOP_TIME not in self.parameters:
+
+            # Static analysis - return solution directly
+            return self._solver.Solve(pset)
+
+        else:
+
+            # Dynamic analysis - create list to store results at each time step
+            solution = list()
+            rvalue = self._solver.Solve(pset)
+
+            # Keep appending results to solution list. The results are returned
+            # as tuples with the current time as the first item, followed by the
+            # post-processed results. Continue solving until a None is returned
+            # as the second item
+            while rvalue[1]:
+
+                solution.append(rvalue)
+                rvalue = self._solver.Solve(pset)
+
+            return solution
 
 class ParametricSolverMaster(ParametricSolver):
     '''Class representing the root or master processor, that handles the task of
