@@ -1,5 +1,6 @@
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#include <boost/shared_ptr.hpp>
 #include <pyublas/numpy.hpp>
 
 #include "solver.hpp"
@@ -10,17 +11,9 @@ BOOST_PYTHON_MODULE(_internals)
 {
 
   class_<fem::Solver>("Solver", init<int, list>())
-    // Reference the PhysicalDomain object pointer as an attribute
-    // stackoverflow.com/questions/2541446/exposing-a-pointer-in-boost-python
-    .add_property("physical_domain",
-		  make_getter(&fem::Solver::s,
-			      return_value_policy<reference_existing_object>()))
-    .add_property("fluid_domain",
-		  make_getter(&fem::Solver::sf,
-			      return_value_policy<reference_existing_object>()))
-    .add_property("common_parameters",
-		  make_getter(&fem::Solver::c,
-			      return_value_policy<reference_existing_object>()))
+    .def_readonly("common_parameters", &fem::Solver::c)
+    .def_readonly("physical_domain", &fem::Solver::s)
+    .def_readonly("fluid_domain", &fem::Solver::sf)
     .def("InitPhysical", &fem::Solver::InitPhysical)
     .def("InitFluid", &fem::Solver::InitFluid)
     .def("Init", &fem::Solver::Init)
@@ -85,7 +78,8 @@ BOOST_PYTHON_MODULE(_internals)
     .def_readwrite("id", &fem::FEM_Domain::id)
     ;
 
-  class_<fem::FEM_PhysicalDomain, bases<fem::FEM_Domain> >("PhysicalDomain")
+  class_<fem::FEM_PhysicalDomain, bases<fem::FEM_Domain>,
+	 boost::shared_ptr<fem::FEM_PhysicalDomain> >("PhysicalDomain")
     .def(pyublas::by_value_ro_member("U", &fem::FEM_PhysicalDomain::U))
     .def(pyublas::by_value_ro_member("Uold", &fem::FEM_PhysicalDomain::Uold))
     .def(pyublas::by_value_ro_member("Ud", &fem::FEM_PhysicalDomain::Ud))
@@ -108,7 +102,8 @@ BOOST_PYTHON_MODULE(_internals)
     .def_pickle(fem::FEM_PhysicalDomain_pickle_suite())
     ;
 
-  class_<fem::FEM_FluidDomain, bases<fem::FEM_Domain> >("FluidDomain")
+  class_<fem::FEM_FluidDomain, bases<fem::FEM_Domain>,
+	 boost::shared_ptr<fem::FEM_FluidDomain> >("FluidDomain")
     .def(pyublas::by_value_ro_member("P", &fem::FEM_FluidDomain::P))
     .def(pyublas::by_value_ro_member("Pold", &fem::FEM_FluidDomain::Pold))
     .def(pyublas::by_value_ro_member("U", &fem::FEM_FluidDomain::U))
@@ -117,7 +112,8 @@ BOOST_PYTHON_MODULE(_internals)
     .def_pickle(fem::FEM_FluidDomain_pickle_suite())
     ;
 
-  class_<fem::FEM_Common>("CommonParameters")
+  class_<fem::FEM_Common,
+	 boost::shared_ptr<fem::FEM_Common> >("CommonParameters")
     .def_readwrite("Phi_mult", &fem::FEM_Common::Phi_mult)
     .def_readwrite("Phi_inf", &fem::FEM_Common::Phi_inf)
     .def_readwrite("original_gap", &fem::FEM_Common::original_gap)

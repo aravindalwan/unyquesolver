@@ -19,6 +19,9 @@ For a copy of the GNU General Public License, please see
 <http://www.gnu.org/licenses/>.
 '''
 
+import os
+import cPickle
+
 import mpihelper
 import logmanager
 import unyquesolver._internals as internals
@@ -48,6 +51,10 @@ SPATIALLY_VARYING_BOUNDARY = 5
 STOP_TIME = 6
 TIME_STEP = 7
 
+# Caching
+CACHE_DIR = './cache/' #: Directory in which cache is stored
+CACHE_SAVE_FREQUENCY = 0.01 #: Frequency at which cache is saved
+
 class ParametricSolver(object):
     '''Base class to solve a PDE for different sets of parameters.
     '''
@@ -56,6 +63,7 @@ class ParametricSolver(object):
         self.comm = mpihelper.comm
         self.rank = mpihelper.rank
         self.number_of_processors = mpihelper.size
+        self.use_cache = False
 
     def _init_solver(self):
         '''Initialize FEM solver assuming that the domain parameters and the UQ
@@ -82,7 +90,7 @@ class ParametricSolver(object):
         # Initialize solver modules
         self._solver.Init();
 
-    def _get_solution(self, pset):
+    def _get_solution(self, replicate, pset):
         '''Compute the solution for the given parameter set.
         '''
 
@@ -106,33 +114,45 @@ class ParametricSolver(object):
 
             # Remove the spatial variation function from parameter set before
             # calling the solver to compute the solution
-            rvalue = self._run_solver(
+            rvalue = self._run_solver(replicate,
                 parameter_set[:svb_index] + parameter_set[(svb_index+1):])
 
         except ValueError:
 
             # SPATIALLY_VARYING_BOUNDARY is not one of the parameters, so call
             # the solver on the entire parameter set
-            rvalue = self._run_solver(parameter_set)
+            rvalue = self._run_solver(replicate, parameter_set)
 
         return rvalue
 
-    def _run_solver(self, pset):
+    def _run_solver(self, replicate, pset):
         '''Run solver on given parameter set. If this involves a dynamic
         analysis, then keep running the solver until it returns None as the
         result for some time-step.
         '''
 
         # Check whether a dynamic analysis is to be performed
-        if STOP_TIME not in self.parameters:
+        if STOP_TIME in self.parameters:
 
-            # Static analysis - return solution directly
-            return self._solver.Solve(pset)
-
-        else:
-
-            # Dynamic analysis - create list to store results at each time step
+            # Dynamic analysis
             solution = list()
+            cache_file = CACHE_DIR + 'replicate{rep}.pickle'.format(
+                rep = replicate)
+
+            # Compute cache point
+            stop_time = pset[self.parameters.index(STOP_TIME)]
+            time_step = pset[self.parameters.index(TIME_STEP)]
+            num_steps = int(stop_time/time_step)
+            cache_point = max(10, int(CACHE_SAVE_FREQUENCY*num_steps))
+            counter = 0
+
+            # Check if cache exists for this replicate
+            if self.use_cache and os.path.exists(cache_file):
+                with open(cache_file, 'rb') as f:
+                    solution = cPickle.load(f)
+                    self._solver.Restore(*(cPickle.load(f)))
+
+            # Run solver at first time step
             rvalue = self._solver.Solve(pset)
 
             # Keep appending results to solution list. The results are returned
@@ -141,10 +161,35 @@ class ParametricSolver(object):
             # as the second item
             while rvalue[1]:
 
+                # Store previously computed solution
                 solution.append(rvalue)
+                counter += 1
+
+                # Cache results at multiples of cache_point
+                if self.use_cache and counter % cache_point == 0:
+
+                    # Backup existing cache file in case caching is interrupted
+                    os.rename(cache_file, cache_file + '.bak')
+
+                    # Write to cache file
+                    with open(cache_file, 'wb') as f:
+                        cPickle.dump(solution, f)
+                        cPickle.dump((self._solver.common_parameters,
+                                      self._solver.physical_domain,
+                                      self._solver.fluid_domain), f)
+
+                    # Delete backup
+                    os.remove(cache_file + '.bak')
+
+                # Run solver at new time step
                 rvalue = self._solver.Solve(pset)
 
             return solution
+
+        else:
+
+            # Static analysis - return solution directly
+            return self._solver.Solve(pset)
 
 class ParametricSolverMaster(ParametricSolver):
     '''Class representing the root or master processor, that handles the task of
@@ -157,7 +202,8 @@ class ParametricSolverMaster(ParametricSolver):
     _log = logmanager.getLogger('unyquesolver.psolver')
     _results_log = logmanager.getLogger('unyquesolver.results')
 
-    def __init__(self, domain_parameters, analysis, pvariable, pfixed):
+    def __init__(self, domain_parameters, analysis, pvariable, pfixed,
+                 use_cache = False):
         '''Initialize the solver on the master node.
 
         Arguments:
@@ -166,6 +212,7 @@ class ParametricSolverMaster(ParametricSolver):
         pvariable -- List of FEM Solver input parameter types
         pfixed -- List of fixed parameters, specified as (type, value) tuples
         that give the type and the value respectively, of the input parameter
+        use_cache -- Whether to enable caching of dynamic analysis results
         '''
 
         super( ParametricSolverMaster, self ).__init__()
@@ -178,6 +225,7 @@ class ParametricSolverMaster(ParametricSolver):
         self.analysis = analysis
         self.parameters = pvariable + [param[0] for param in pfixed]
         self.fixed_parameter_values = [param[1] for param in pfixed]
+        self.use_cache = use_cache
 
         # Broadcast FEM solver configuration data to workers
         self._log.info('Broadcasting FEM solver parameters to workers')
@@ -185,6 +233,12 @@ class ParametricSolverMaster(ParametricSolver):
         self.comm.bcast(self.analysis, root = mpihelper.MASTER)
         self.comm.bcast(self.parameters, root = mpihelper.MASTER)
         self.comm.bcast(self.fixed_parameter_values, root = mpihelper.MASTER)
+        self.comm.bcast(self.use_cache, root = mpihelper.MASTER)
+
+        # Check whether a dynamic analysis is to be performed and create cache
+        if self.use_cache and STOP_TIME in self.parameters:
+            if not os.path.exists(CACHE_DIR):
+                os.makedirs(CACHE_DIR)
 
         # Initialize FEM solver
         self._log.info('Initializing FEM solver')
@@ -273,7 +327,7 @@ class ParametricSolverMaster(ParametricSolver):
                         break
                 if not pset:
                     break
-                result = self._get_solution(pset)
+                result = self._get_solution(position, pset)
 
                 # Log this result
                 meta_data = {'replicate': position, 'raw_result': result,
@@ -343,6 +397,7 @@ class ParametricSolverWorker(ParametricSolver):
         self.analysis = self.comm.bcast(root = mpihelper.MASTER)
         self.parameters = self.comm.bcast(root = mpihelper.MASTER)
         self.fixed_parameter_values = self.comm.bcast(root = mpihelper.MASTER)
+        self.use_cache = self.comm.bcast(root = mpihelper.MASTER)
 
         # Initialize FEM solver
         self._init_solver()
@@ -369,7 +424,7 @@ class ParametricSolverWorker(ParametricSolver):
             while not position < 0:
 
                 # Compute the solution for the current set
-                result = self._get_solution(current_set)
+                result = self._get_solution(position, current_set)
 
                 # Send the result to master along with the position
                 self.comm.send((position, result), dest = mpihelper.MASTER,
