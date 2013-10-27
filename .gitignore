@@ -5,3 +5,4 @@ setup.cfg
 build
 dist
 unyquesolver.egg-info
+Makefile
