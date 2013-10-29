@@ -150,6 +150,12 @@ class ParametricSolver(object):
 
             # Check if cache exists for this replicate
             if self.use_cache and os.path.exists(cache_file):
+
+                # If backup file exists then use that instead of the cache file
+                # since it is possible the the main cache file is corrupt
+                if os.path.exists(cache_file + '.bak'):
+                    os.rename(cache_file + '.bak', cache_file)
+
                 with open(cache_file, 'rb') as f:
                     solution = cPickle.load(f)
                     self._solver.Restore(*(cPickle.load(f)))
