@@ -140,8 +140,10 @@ class ParametricSolver(object):
                 rep = replicate)
 
             # Compute cache point
-            stop_time = pset[self.parameters.index(STOP_TIME)]
-            time_step = pset[self.parameters.index(TIME_STEP)]
+            params = [p for p in self.parameters
+                      if p != SPATIALLY_VARYING_BOUNDARY]
+            stop_time = pset[params.index(STOP_TIME)]
+            time_step = pset[params.index(TIME_STEP)]
             num_steps = int(stop_time/time_step)
             cache_point = max(10, int(CACHE_SAVE_FREQUENCY*num_steps))
             counter = 0
