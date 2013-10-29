@@ -359,11 +359,15 @@ void fem::FEM_FluidDomain_pickle_suite::setstate(bp::object o, bp::tuple state) 
 }
 //------------------------------------------------------------------------------
 fem::FEM_Common::FEM_Common() {
+  functions = new Function();
+  Init();
+}
+//------------------------------------------------------------------------------
+void fem::FEM_Common::Init() {
   DEBUG = 0;
   Phi_mult = 1; Phi_inf = 0;
   original_gap = new_gap = 2.0;
   t = t_stop = dt = 0;
-  functions = new Function();
 }
 //------------------------------------------------------------------------------
 bp::tuple fem::FEM_Common_pickle_suite::getstate(bp::object o) {

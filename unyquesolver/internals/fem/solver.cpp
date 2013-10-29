@@ -86,9 +86,12 @@ void fem::Solver::InitPhysical(bp::list nodes, bp::list edges,
   s->SetID(1);
   s->SetMesh(nodes, edges, elements);
 
-  // Re-initialize fluid domain DOFs
-  if (sf != NULL)
+  // If fluid domain exists (applicable during reinitialization before solving a
+  // new replicate) then re-initialize its DOFs and re-initialize FEM_Common
+  if (sf != NULL) {
     sf->InitDOFs();
+    c->Init();
+  }
 
 }
 //------------------------------------------------------------------------------
@@ -499,8 +502,6 @@ bp::object fem::Solver::HybridETMDynamic() {
       //  				 fluid->GapHeight(), fluid->Pressure());
       rvalue = bp::make_tuple(c->t, nelast->DispBoundaryEdge(1, -1));
     } else {
-      s->InitDOFs();
-      sf->InitDOFs();
       rvalue = bp::make_tuple(c->t, bp::object());
     }
 

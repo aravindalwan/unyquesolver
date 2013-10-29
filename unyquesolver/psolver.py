@@ -161,7 +161,7 @@ class ParametricSolver(object):
             # as tuples with the current time as the first item, followed by the
             # post-processed results. Continue solving until a None is returned
             # as the second item
-            while rvalue[1]:
+            while rvalue[1] is not None:
 
                 # Store previously computed solution
                 solution.append(rvalue)
@@ -171,7 +171,8 @@ class ParametricSolver(object):
                 if self.use_cache and counter % cache_point == 0:
 
                     # Backup existing cache file in case caching is interrupted
-                    os.rename(cache_file, cache_file + '.bak')
+                    if os.path.exists(cache_file):
+                        os.rename(cache_file, cache_file + '.bak')
 
                     # Write to cache file
                     with open(cache_file, 'wb') as f:
@@ -181,7 +182,10 @@ class ParametricSolver(object):
                                       self._solver.fluid_domain), f)
 
                     # Delete backup
-                    os.remove(cache_file + '.bak')
+                    try:
+                        os.remove(cache_file + '.bak')
+                    except OSError:
+                        pass
 
                 # Run solver at new time step
                 rvalue = self._solver.Solve(pset)

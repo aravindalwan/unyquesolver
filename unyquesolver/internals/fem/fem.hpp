@@ -193,6 +193,9 @@ namespace fem {
     FEM_Common();
     ~FEM_Common() {};
 
+    //Initialization
+    void Init();
+
   };
 
   struct FEM_Common_pickle_suite : bp::pickle_suite {
