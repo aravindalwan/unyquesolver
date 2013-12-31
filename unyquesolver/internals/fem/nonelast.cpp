@@ -1087,12 +1087,14 @@ int NonElast::MaxAbsDispPoint(int direction) {
   return maxPoint;
 }
 //------------------------------------------------------------------------------
-bp::list NonElast::DispBoundaryEdge(int bmarker, int direction) {
+pyublas::numpy_matrix<double> NonElast::DispBoundaryEdge(int bmarker,
+							 int direction) {
 
   bp::dict displacements;
   fem::FEM_Edge *ed;
-  double disp, x, y;
-  bp::list dispvalues, rvalue;
+  double disp;
+  bp::list dispvalues;
+  pyublas::numpy_matrix<double> rvalue;
   bp::tuple item;
   int index;
 
@@ -1123,13 +1125,13 @@ bp::list NonElast::DispBoundaryEdge(int bmarker, int direction) {
   } // End of loop over boundary edges
 
   dispvalues = (bp::list)displacements.iteritems();
+  rvalue.resize(bp::len(dispvalues), 3, 0.0);
   for (bp::ssize_t i = 0; i < bp::len(dispvalues); i++) {
     item = bp::extract<bp::tuple>(dispvalues[i]);
     index = bp::extract<int>(item[0]);
-    x = s->Nodes[index]->x + (s->U)(index - 1);
-    y = s->Nodes[index]->y + (s->V)(index - 1);
-    disp = bp::extract<double>(item[1]);
-    rvalue.append(bp::make_tuple(x, y, disp));
+    rvalue(i, 0) = s->Nodes[index]->x + (s->U)(index - 1);
+    rvalue(i, 1) = s->Nodes[index]->y + (s->V)(index - 1);
+    rvalue(i, 2) = bp::extract<double>(item[1]);
   }
 
   return rvalue;
@@ -1146,6 +1148,12 @@ pyublas::numpy_vector<double> NonElast::Displacement(int direction) {
     for (int j = 0; j < s->nbnode; j++)
       rval(j) = sqrt(pow((s->U)(j),2) + pow((s->V)(j),2));
   }
+  return rval;
+}
+//------------------------------------------------------------------------------
+pyublas::numpy_vector<double> NonElast::PressureTraction() {
+  pyublas::numpy_vector<double> rval((s->Pf).size());
+  rval.assign(s->Pf);
   return rval;
 }
 //------------------------------------------------------------------------------

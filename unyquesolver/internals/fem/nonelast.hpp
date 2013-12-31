@@ -78,8 +78,9 @@ public:
   void PrintResults();
   double MaxAbsDisp(int direction);
   int MaxAbsDispPoint(int direction);
-  bp::list DispBoundaryEdge(int bmarker, int direction);
+  pyublas::numpy_matrix<double> DispBoundaryEdge(int bmarker, int direction);
   pyublas::numpy_vector<double> Displacement(int direction);
+  pyublas::numpy_vector<double> PressureTraction();
   double PotentialEnergy();
   double DampingPower();
 };
