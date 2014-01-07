@@ -105,13 +105,22 @@ class ResultsLogger(logging.Logger):
         '''
 
         if mpihelper.rank == mpihelper.MASTER:
-            # Read from results log if it exists
-            results = list()
+            # Gather lists of completed results corresponding to each tag.
+            self.completed_results = defaultdict(list)
             try:
                 with open(filename, 'rb') as f:
                     while True:
                         try:
-                            results.append(cPickle.load(f))
+
+                            # Load new result
+                            r = cPickle.load(f)
+
+                            # If result dictionary contains 'tag' and 'replicate'
+                            # keys, then add its replicate ID to the list, else
+                            # ignore the result
+                            if 'tag' in r and 'replicate' in r:
+                                self.completed_results[r['tag']].append(r['replicate'])
+
                         except EOFError:
                             break
             except IOError as ioe:
@@ -120,14 +129,6 @@ class ResultsLogger(logging.Logger):
                 else: # Unexpected error, so re-raise
                     raise ioe
 
-            # Gather lists of completed results corresponding to each tag.
-            # If result dictionary contains 'tag' and 'replicate' keys, then
-            # add its replicate ID to the list, else ignore the result
-            self.completed_results = defaultdict(list)
-            for r in results:
-                if 'tag' in r and 'replicate' in r:
-                    self.completed_results[r['tag']].append(r['replicate'])
-
             # Send this dictionary to workers
             mpihelper.comm.bcast(self.completed_results,
                                  root = mpihelper.MASTER)
@@ -135,7 +136,6 @@ class ResultsLogger(logging.Logger):
             # Obtain completed results from master
             self.completed_results = mpihelper.comm.bcast(
                 root = mpihelper.MASTER)
-
 
     def isEnabledFor(self, level, resultID = None):
         '''Overloaded function that checks whether log records at a given level
