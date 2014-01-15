@@ -20,7 +20,10 @@ For a copy of the GNU General Public License, please see
 '''
 
 import logging
-import cPickle
+from ZODB.FileStorage import FileStorage
+from ZODB.DB import DB
+from BTrees.IOBTree import IOBTree
+import transaction
 from collections import defaultdict
 
 import mpihelper
@@ -105,29 +108,23 @@ class ResultsLogger(logging.Logger):
         '''
 
         if mpihelper.rank == mpihelper.MASTER:
+
+            # Open database
+            storage = FileStorage(filename)
+            db = DB(storage)
+            connection = db.open()
+            root = connection.root()
+
             # Gather lists of completed results corresponding to each tag.
             self.completed_results = defaultdict(list)
-            try:
-                with open(filename, 'rb') as f:
-                    while True:
-                        try:
+            for tag in root.keys():
+                for replicate in root[tag]:
+                    self.completed_results[tag].append(replicate)
 
-                            # Load new result
-                            r = cPickle.load(f)
-
-                            # If result dictionary contains 'tag' and 'replicate'
-                            # keys, then add its replicate ID to the list, else
-                            # ignore the result
-                            if 'tag' in r and 'replicate' in r:
-                                self.completed_results[r['tag']].append(r['replicate'])
-
-                        except EOFError:
-                            break
-            except IOError as ioe:
-                if 'No such file' in str(ioe): # File does not exist
-                    pass
-                else: # Unexpected error, so re-raise
-                    raise ioe
+            # Close database
+            connection.close()
+            db.close()
+            storage.close()
 
             # Send this dictionary to workers
             mpihelper.comm.bcast(self.completed_results,
@@ -175,10 +172,10 @@ class ResultsLogger(logging.Logger):
 
 class ResultsHandler(logging.Handler):
     '''Handler used to store results posted to the results logger, by writing
-    the pickled results to a file. When initialized on worker processors, it
-    merely sends the result to the master processor using MPI, while the
-    corresponding object initialized on the master processor performs the task
-    of actually writing the results.
+    the results to a databse. When initialized on worker processors, it merely
+    sends the result to the master processor using MPI, while the corresponding
+    object initialized on the master processor performs the task of actually
+    writing the results.
     '''
 
     def __init__(self, filename):
@@ -193,20 +190,47 @@ class ResultsHandler(logging.Handler):
         self.filename = None
         if mpihelper.rank == mpihelper.MASTER:
             self.filename = filename
+            self.dbstorage = FileStorage(filename)
+            self.db = DB(self.dbstorage)
 
     def emit(self, record):
-        '''If this is the master processor, save the given record by pickling
-        its attribute dictionary and appending the pickled form to the file. If
-        this is the worker, then send the record to the master.
+        '''If this is the master processor, save the given record by storing its
+        attribute dictionary in the database. If this is the worker, then send
+        the record to the master.
 
         Arguments:
         record -- the LogRecord instance that is to be handled
         '''
 
         if mpihelper.rank == mpihelper.MASTER:
-            with open(self.filename, 'ab') as f:
-                cPickle.dump(record.__dict__, f)
+
+            ## Copy the dictionary containing attributes of the record
+            result = record.__dict__.copy()
+
+            # Remove the 'args' key to avoid repetition of the result
+            result.pop('args')
+            tag = result['tag']
+            replicate = result['replicate']
+
+            # Open connection
+            connection = self.db.open()
+            root = connection.root()
+
+            # If tag is not found in database, create a new Persistent mapping
+            # for it
+            if tag not in root:
+                root[tag] = IOBTree()
+
+            # Store result
+            root[tag][replicate] = result
+
+            # Commit transaction to databse and close connection
+            transaction.commit()
+            connection.close()
+
         else:
+
+            # Send log record to master processor
             mpihelper.comm.send(record, dest = mpihelper.MASTER,
                                 tag = RESULT_TAG)
 
