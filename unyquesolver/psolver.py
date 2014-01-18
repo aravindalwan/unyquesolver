@@ -156,9 +156,17 @@ class ParametricSolver(object):
                 if os.path.exists(cache_file + '.bak'):
                     os.rename(cache_file + '.bak', cache_file)
 
-                with open(cache_file, 'rb') as f:
-                    solution = cPickle.load(f)
-                    self._solver.Restore(*(cPickle.load(f)))
+                try:
+                    with open(cache_file, 'rb') as f:
+                        solution = cPickle.load(f)
+                        self._solver.Restore(*(cPickle.load(f)))
+                except ValueError:
+                    # Backup file seems to be corrupted. Ignore restore
+                    # process & delete backup file
+                    try:
+                        os.remove(cache_file)
+                    except OSError:
+                        pass
 
             # Run solver at first time step
             rvalue = self._solver.Solve(pset)
