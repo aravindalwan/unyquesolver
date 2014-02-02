@@ -748,7 +748,7 @@ void Fluid::PrintResults() {
 void Fluid::CompPressureTraction() {
 
   int elem;
-  double x, z, si, ti;
+  double x, z, si, ti, width;
   unyque::DVector v0, v1, v2, N, Pe;
 
   v0 = unyque::DVector(2);
@@ -770,6 +770,9 @@ void Fluid::CompPressureTraction() {
 
     // X-coordinate of this node
     x = s->Nodes[node + 1]->x;
+
+    // Initialize width
+    width = 0;
 
     for (int j = 0; j < Gbnquad; j++) {
 
@@ -811,7 +814,13 @@ void Fluid::CompPressureTraction() {
       // Add contribution to the traction integral after converting to Pa
       (s->Pf)(node) += 101325*ublas::inner_prod(N, Pe)*Gbw(j);
 
+      // Add contribution to the width integral
+      width += Gbw(j);
+
     } // End of loop over Gauss points
+
+    // Normalize traction by width of the pressure domain
+    (s->Pf)(node) /= width;
 
   } // End of loop over boundary nodes
 
