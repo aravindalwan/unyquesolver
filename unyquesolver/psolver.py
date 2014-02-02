@@ -50,6 +50,7 @@ VOLTAGE = 4
 SPATIALLY_VARYING_BOUNDARY = 5
 STOP_TIME = 6
 TIME_STEP = 7
+TRANSIENT_VOLTAGE = 8
 
 # Caching
 CACHE_DIR = './cache/' #: Directory in which cache is stored

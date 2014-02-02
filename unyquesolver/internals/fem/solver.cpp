@@ -163,7 +163,6 @@ void fem::Solver::Restore(boost::shared_ptr<FEM_Common> ic,
 //------------------------------------------------------------------------------
 bp::object fem::Solver::Solve(bp::list params) {
 
-  double param;
   int regionToMove;
   unyque::DMatrix displacement;
   FEM_Element *el;
@@ -172,20 +171,18 @@ bp::object fem::Solver::Solve(bp::list params) {
 
   for (int i = 0; i < len(params); i++) {
 
-    param = bp::extract<double>(params[i])();
-
     switch (paramType[i]) { // Check which parameter it corresponds to
 
     case YOUNGS_MODULUS: // Set mechanical elastic modulus
-      nelast->EM = param*1e9;
+      nelast->EM = bp::extract<double>(params[i])*1e9;
       break;
     case THERMAL_CONDUCTIVITY: // Set thermal conductivity
       c->functions->CONST_FUNC = 1;
-      c->functions->TC = param;
+      c->functions->TC = bp::extract<double>(params[i]);
       break;
     case INTER_ELECTRODE_GAP: // Set electrostatic gap
       regionToMove = 2;
-      c->new_gap = param;
+      c->new_gap = bp::extract<double>(params[i]);
       displacement.resize(s->nnode,2);
       displacement = unyque::DMatrix_zero(s->nnode,2);
       for (int eid = 0; eid < s->nelem; eid++) {
@@ -202,13 +199,16 @@ bp::object fem::Solver::Solve(bp::list params) {
       s->MoveMesh(displacement);
       break;
     case VOLTAGE: // Set voltage
-      c->Phi_mult = param;
+      c->Phi_mult = bp::extract<double>(params[i]);
       break;
     case STOP_TIME: // Set time duration of simulation
-      c->t_stop = param;
+      c->t_stop = bp::extract<double>(params[i]);
       break;
     case TIME_STEP: // Set time-step
-      c->dt = param;
+      c->dt = bp::extract<double>(params[i]);
+      break;
+    case TRANSIENT_VOLTAGE: // Set transient voltage function
+      c->functions->SetTransientVoltage(params[i]);
       break;
     default:
       cout << "Unknown random parameter type" << endl;
@@ -471,11 +471,8 @@ bp::object fem::Solver::HybridETMDynamic() {
 
     prevErr = 1e6; pulledIn = false;
 
-    // Apply sinusoidal force on the right boundary of top electrode
-    // nelast->BCvals(1,1) = -1e4*sin(2*4*atan2(1,1)*2e5*c->t);
-
-    // Apply sinusoidal voltage
-    eles->RegAttr(0,1) = sin(2*4*atan2(1,1)*1e5*c->t);
+    // Apply transient voltage function
+    c->Phi_mult = c->functions->TransientVoltage(c->t);
 
     // Perform preprocessing steps
     fluid->PreProcess();

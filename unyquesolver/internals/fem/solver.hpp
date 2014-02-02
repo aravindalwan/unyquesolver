@@ -20,6 +20,7 @@ namespace bp = boost::python;
 // Spatially varying boundary is #5
 #define STOP_TIME             6
 #define TIME_STEP             7
+#define TRANSIENT_VOLTAGE     8
 
 // Define analysis modes
 #define MECHANICS                 1

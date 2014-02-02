@@ -7,6 +7,9 @@ Function::Function() {
 
   // Initialize constant values of functions
   TC = 146.4; EC = 2381; Alpha = 2.568e-6;
+
+  // Initialize transient voltage function
+  TransientVoltage = &(Function::DefaultTransientVoltage);
 }
 //------------------------------------------------------------------------------
 double Function::Eval_TC(double T) {
@@ -55,4 +58,16 @@ double Function::Eval_Alpha(double T) {
   else
     return (a*exp(b*T)+c*exp(d*T));
 
+}
+//------------------------------------------------------------------------------
+void Function::SetTransientVoltage(bp::object func) {
+  TransientVoltage = boost::function<double (double)>(FunctionWrapper(func));
+}
+//------------------------------------------------------------------------------
+double Function::DefaultTransientVoltage(double t) {
+  return 1.0;
+}
+//------------------------------------------------------------------------------
+double FunctionWrapper::operator()(double t) {
+  return bp::extract<double>(_callable(t));
 }
