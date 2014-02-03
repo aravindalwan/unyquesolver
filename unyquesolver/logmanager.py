@@ -228,6 +228,9 @@ class ResultsHandler(logging.Handler):
             transaction.commit()
             connection.close()
 
+            # Pack database - Not sure if this should be done after each commit
+            db.pack()
+
         else:
 
             # Send log record to master processor
