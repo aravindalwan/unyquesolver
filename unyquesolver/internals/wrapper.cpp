@@ -18,6 +18,7 @@ BOOST_PYTHON_MODULE(_internals)
     .def("InitFluid", &fem::Solver::InitFluid)
     .def("Init", &fem::Solver::Init)
     .def("Restore", &fem::Solver::Restore)
+    .def("SetParameters", &fem::Solver::SetParameters)
     .def("Solve", &fem::Solver::Solve)
     ;
 

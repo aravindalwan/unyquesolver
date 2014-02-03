@@ -170,7 +170,8 @@ class ParametricSolver(object):
                         pass
 
             # Run solver at first time step
-            rvalue = self._solver.Solve(pset)
+            self._solver.SetParameters(pset)
+            rvalue = self._solver.Solve()
 
             # Keep appending results to solution list. The results are returned
             # as tuples with the current time as the first item, followed by the
@@ -203,14 +204,15 @@ class ParametricSolver(object):
                         pass
 
                 # Run solver at new time step
-                rvalue = self._solver.Solve(pset)
+                rvalue = self._solver.Solve()
 
             return solution
 
         else:
 
             # Static analysis - return solution directly
-            return self._solver.Solve(pset)
+            self._solver.SetParameters(pset)
+            return self._solver.Solve()
 
 class ParametricSolverMaster(ParametricSolver):
     '''Class representing the root or master processor, that handles the task of

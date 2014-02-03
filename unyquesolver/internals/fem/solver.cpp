@@ -161,7 +161,7 @@ void fem::Solver::Restore(boost::shared_ptr<FEM_Common> ic,
 
 }
 //------------------------------------------------------------------------------
-bp::object fem::Solver::Solve(bp::list params) {
+void fem::Solver::SetParameters(bp::list params) {
 
   int regionToMove;
   unyque::DMatrix displacement;
@@ -217,7 +217,11 @@ bp::object fem::Solver::Solve(bp::list params) {
 
   }
 
-  return (this->*analysis)();
+}
+//------------------------------------------------------------------------------
+bp::object fem::Solver::Solve() {
+
+    return (this->*analysis)();
 
 }
 //------------------------------------------------------------------------------

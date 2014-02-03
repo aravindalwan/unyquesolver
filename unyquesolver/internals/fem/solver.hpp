@@ -48,7 +48,8 @@ namespace fem {
     void Restore(boost::shared_ptr<FEM_Common> ic,
 		 boost::shared_ptr<FEM_PhysicalDomain> is,
 		 boost::shared_ptr<FEM_FluidDomain> isf);
-    bp::object Solve(bp::list params);
+    void SetParameters(bp::list params);
+    bp::object Solve();
 
     boost::shared_ptr<FEM_Common> c;
     boost::shared_ptr<FEM_PhysicalDomain> s;
