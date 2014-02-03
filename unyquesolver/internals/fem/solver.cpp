@@ -197,6 +197,8 @@ void fem::Solver::SetParameters(bp::list params) {
         }
       }
       s->MoveMesh(displacement);
+      if (useFluid)
+	fluid->CompGapHeight();
       break;
     case VOLTAGE: // Set voltage
       c->Phi_mult = bp::extract<double>(params[i]);
