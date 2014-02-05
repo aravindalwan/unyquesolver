@@ -229,7 +229,7 @@ class ResultsHandler(logging.Handler):
             connection.close()
 
             # Pack database - Not sure if this should be done after each commit
-            db.pack()
+            self.db.pack()
 
         else:
 
