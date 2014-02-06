@@ -494,7 +494,7 @@ bp::object fem::Solver::HybridETMDynamic() {
       err = max(ublas::norm_inf((s->U)-oldU), ublas::norm_inf((s->V)-oldV));
       oldU = (s->U); oldV = (s->V);
 
-      if ((err > 2*prevErr) || (ublas::norm_inf(s->V) > c->new_gap)) {
+      if (ublas::norm_inf(s->V) > c->new_gap) {
 	pulledIn = true;
 	break;
       }
