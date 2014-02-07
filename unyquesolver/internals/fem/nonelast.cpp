@@ -600,7 +600,7 @@ void NonElast::CompBandS(unyque::DMatrix &Ue) {
   S(1,0) = S(0,1);
 
   // Compute strain energy density
-  SEdensity = EM*(S(0,0)*E(0,0)+S(0,1)*E(0,1)+S(1,0)*E(1,0)+S(1,1)*E(1,1));
+  SEdensity = 0.5*EM*(S(0,0)*E(0,0)+S(0,1)*E(0,1)+S(1,0)*E(1,0)+S(1,1)*E(1,1));
 
   // Compute Smat
   Smat(0,0) = S(0,0); Smat(0,1) = S(0,1); Smat(0,2) = 0.0; Smat(0,3) = 0.0;
