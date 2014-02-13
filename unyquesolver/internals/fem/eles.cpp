@@ -592,7 +592,7 @@ unyque::DVector ElEs::CompIGGstar2(int p, int q) {
 
   fem::FEM_Edge *edp, *edq;
   int Gnode, startip;
-  double Rsq, si, ti, detJ1D = 0.0, FinvTN;
+  double Rsq, si, ti, detJ1D = 0.0, FinvTN, x1, x2, y1, y2, y;
   unyque::DMatrix Ecoor, FF, dN, B, Finv;
   unyque::DVector N, integrals, n(2), xp(2), up(2), xq(2), uq(2);
 
@@ -609,15 +609,29 @@ unyque::DVector ElEs::CompIGGstar2(int p, int q) {
   n(0) = -cos(edq->normal);
   n(1) = -sin(edq->normal);
 
+  x1 = s->Nodes[edq->node1]->x;
+  x2 = s->Nodes[edq->node2]->x;
+  y1 = s->Nodes[edq->node1]->y;
+  y2 = s->Nodes[edq->node2]->y;
+
   for (int i = 0; i < enode; i++) {
     Gnode = ENC(edq->eno-1, i+1); // Global node corr. to (i+1)th local node
     Ecoor(i,0) = s->Nodes[Gnode]->x; // X-coordinate at that node
     Ecoor(i,1) = s->Nodes[Gnode]->y; // Y-coordinate at that node
+    if (edq->bmarker == 7) {
+      if (x2 > x1)
+	y = y1 + (Ecoor(i,0) - x1)*(y2 - y1)/(x2-x1);
+      else
+	y = y2 + (Ecoor(i,0) - x2)*(y1 - y2)/(x1-x2);
+      Ecoor(i,1) = -1 + (Ecoor(i,1) + 1)/(y+1);
+    }
   }
 
   // Compute coordinates of position and displacement vectors of field point
   xp(0) = s->Nodes[edp->node3]->x;
   xp(1) = s->Nodes[edp->node3]->y;
+  if (edp->bmarker == 7)
+    xp(1) = 0;
   up(0) = (s->U)(edp->node3 - 1);
   up(1) = (s->V)(edp->node3 - 1);
 
