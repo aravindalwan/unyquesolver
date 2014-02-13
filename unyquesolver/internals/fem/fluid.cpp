@@ -497,7 +497,7 @@ void Fluid::CompGapHeight() {
     Quantity(2) = s->Nodes[ed->node3]->y + (s->V)(ed->node3-1);
 
     // Compute gap height at this node
-    (sf->H)(i) = abs((sf->H)(i) - ublas::inner_prod(N, Quantity));
+    (sf->H)(i) = abs((sf->H)(i)); // - ublas::inner_prod(N, Quantity));
 
   } // End loop over nodes
 
