@@ -468,6 +468,7 @@ bp::object fem::Solver::HybridETMDynamic() {
   unyque::DVector oldU, oldV;
   double err, prevErr, eps = 1e-4;
   bool pulledIn;
+  int counter = 0;
 
   oldU = unyque::DVector_zero(s->nnode); oldV = unyque::DVector_zero(s->nnode);
 
@@ -494,7 +495,8 @@ bp::object fem::Solver::HybridETMDynamic() {
       err = max(ublas::norm_inf((s->U)-oldU), ublas::norm_inf((s->V)-oldV));
       oldU = (s->U); oldV = (s->V);
 
-      if (ublas::norm_inf(s->V) > c->new_gap) {
+      if (((++counter > 2) && (err > prevErr)) |
+	  (ublas::norm_inf(s->V) > c->new_gap)) {
 	pulledIn = true;
 	break;
       }
