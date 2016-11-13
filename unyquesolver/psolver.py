@@ -20,12 +20,12 @@ For a copy of the GNU General Public License, please see
 '''
 
 import os
-import cPickle
+import pickle
 
-import mpihelper
-import logmanager
+from . import mpihelper
+from . import logmanager
 import unyquesolver._internals as internals
-from mesh import Domain
+from .mesh import Domain
 
 # MPI Tags
 PARAMETER_SET = 1 # Tag for messages containing parameter sets
@@ -159,8 +159,8 @@ class ParametricSolver(object):
 
                 try:
                     with open(cache_file, 'rb') as f:
-                        solution = cPickle.load(f)
-                        self._solver.Restore(*(cPickle.load(f)))
+                        solution = pickle.load(f)
+                        self._solver.Restore(*(pickle.load(f)))
                 except ValueError:
                     # Backup file seems to be corrupted. Ignore restore
                     # process & delete backup file
@@ -192,8 +192,8 @@ class ParametricSolver(object):
 
                     # Write to cache file
                     with open(cache_file, 'wb') as f:
-                        cPickle.dump(solution, f)
-                        cPickle.dump((self._solver.common_parameters,
+                        pickle.dump(solution, f)
+                        pickle.dump((self._solver.common_parameters,
                                       self._solver.physical_domain,
                                       self._solver.fluid_domain), f)
 

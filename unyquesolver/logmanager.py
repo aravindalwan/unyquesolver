@@ -26,7 +26,7 @@ from BTrees.IOBTree import IOBTree
 import transaction
 from collections import defaultdict
 
-import mpihelper
+from . import mpihelper
 
 # Define levels for results logger
 ITERATION = logging.DEBUG
